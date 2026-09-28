@@ -36,6 +36,7 @@ import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.domain.ProtectionError
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.localization.LanguageManager
+import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 @Composable
@@ -44,7 +45,9 @@ fun MainScreen(
     launcherIconHidden: Boolean,
     canRequestTile: Boolean,
     selectedLanguage: String,
+    selectedTheme: String,
     onLanguageSelected: (String) -> Unit,
+    onThemeSelected: (String) -> Unit,
     onEnableProtection: () -> Unit,
     onDisableProtection: () -> Unit,
     onRefresh: () -> Unit,
@@ -57,21 +60,29 @@ fun MainScreen(
 
     Surface(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-            LanguageSwitcher(
-                selectedLanguage = selectedLanguage,
-                onLanguageSelected = onLanguageSelected,
+            Column(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
                     .padding(top = 8.dp, end = 12.dp)
                     .zIndex(1f),
-            )
+                horizontalAlignment = Alignment.End,
+            ) {
+                LanguageSwitcher(
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = onLanguageSelected,
+                )
+                ThemeSwitcher(
+                    selectedTheme = selectedTheme,
+                    onThemeSelected = onThemeSelected,
+                )
+            }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 24.dp, top = 72.dp, end = 24.dp, bottom = 24.dp),
+                    .padding(start = 24.dp, top = 120.dp, end = 24.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -240,16 +251,13 @@ private fun LanguageSwitcher(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LanguageButton(
+        SelectorButton(
             label = "RU",
             selected = selectedLanguage == LanguageManager.RUSSIAN,
             onClick = { onLanguageSelected(LanguageManager.RUSSIAN) },
         )
-        Text(
-            text = "|",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        LanguageButton(
+        SelectorDivider()
+        SelectorButton(
             label = "EN",
             selected = selectedLanguage == LanguageManager.ENGLISH,
             onClick = { onLanguageSelected(LanguageManager.ENGLISH) },
@@ -258,10 +266,54 @@ private fun LanguageSwitcher(
 }
 
 @Composable
-private fun LanguageButton(
+private fun ThemeSwitcher(
+    selectedTheme: String,
+    onThemeSelected: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(0.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SelectorButton(
+            label = stringResource(R.string.theme_system),
+            selected = selectedTheme == ThemeManager.SYSTEM,
+            onClick = { onThemeSelected(ThemeManager.SYSTEM) },
+            compact = true,
+        )
+        SelectorDivider()
+        SelectorButton(
+            label = stringResource(R.string.theme_light),
+            selected = selectedTheme == ThemeManager.LIGHT,
+            onClick = { onThemeSelected(ThemeManager.LIGHT) },
+            compact = true,
+        )
+        SelectorDivider()
+        SelectorButton(
+            label = stringResource(R.string.theme_dark),
+            selected = selectedTheme == ThemeManager.DARK,
+            onClick = { onThemeSelected(ThemeManager.DARK) },
+            compact = true,
+        )
+    }
+}
+
+@Composable
+private fun SelectorDivider() {
+    Text(
+        text = "|",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.labelSmall,
+    )
+}
+
+@Composable
+private fun SelectorButton(
     label: String,
     selected: Boolean,
     onClick: () -> Unit,
+    compact: Boolean = false,
 ) {
     TextButton(onClick = onClick) {
         Text(
@@ -272,6 +324,7 @@ private fun LanguageButton(
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            style = if (compact) MaterialTheme.typography.labelSmall else MaterialTheme.typography.labelLarge,
         )
     }
 }
@@ -307,7 +360,9 @@ private fun MainScreenPreview() {
             launcherIconHidden = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
+            selectedTheme = ThemeManager.SYSTEM,
             onLanguageSelected = {},
+            onThemeSelected = {},
             onEnableProtection = {},
             onDisableProtection = {},
             onRefresh = {},
