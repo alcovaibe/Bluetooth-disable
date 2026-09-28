@@ -2,6 +2,8 @@
 
 **Язык:** [Русский](README.md) | [English](README_EN.md)
 
+**Для разработчиков:** [инструкция по сборке и тестированию](#инструкция-для-разработчиков)
+
 Bluetooth Disable — приложение для Android, которое позволяет системно заблокировать Bluetooth на устройстве.
 
 В отличие от обычного выключения Bluetooth, режим защиты использует возможности Android Device Policy. Пока защита активна, Android запрещает штатное включение и использование Bluetooth.
@@ -63,7 +65,7 @@ Bluetooth Disable разработан с принципом минимальн�
 
 Для полноценной работы режима защиты приложение должно быть установлено как Device Owner.
 
-Инструкции по разработке и тестированию находятся в каталоге [`docs`](docs/).
+Для сборки из исходного кода и тестирования см. [инструкцию для разработчиков](#инструкция-для-разработчиков).
 
 ## Статус проекта
 
@@ -80,3 +82,101 @@ Bluetooth Disable находится в активной разработке.
 - Android DevicePolicyManager;
 - Android Enterprise / Device Owner;
 - minSdk 26.
+
+---
+
+## Инструкция для разработчиков
+
+### Требования
+
+- Android Studio и Android SDK 36;
+- JDK 17;
+- тестовое устройство с Android 8.0+ или совместимый эмулятор;
+- ADB.
+
+### Debug-сборка
+
+Полная локальная проверка и сборка debug APK:
+
+```bash
+./gradlew testDebugUnitTest lintDebug assembleDebug
+```
+
+На Windows:
+
+```powershell
+.\gradlew.bat testDebugUnitTest lintDebug assembleDebug
+```
+
+Готовый debug APK находится в:
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Автоподпись release APK
+
+В корне репозитория находится шаблон `keystore.properties.example`. Сам ключ подписи и пароли в репозиторий не добавляются.
+
+1. Скопируйте `keystore.properties.example` в `keystore.properties`.
+2. Укажите путь к постоянному release-keystore, пароль хранилища, alias ключа и пароль ключа.
+3. Для обновлений всегда используйте тот же ключ, которым подписана предыдущая публичная версия Bluetooth Disable.
+4. Соберите release APK:
+
+```bash
+./gradlew assembleRelease
+```
+
+На Windows:
+
+```powershell
+.\gradlew.bat assembleRelease
+```
+
+Подписанный APK создаётся в:
+
+```text
+app/build/outputs/apk/release/app-release.apk
+```
+
+`keystore.properties`, `*.jks` и `*.keystore` исключены через `.gitignore` и не должны попадать в GitHub. Если настройки подписи отсутствуют, release-сборка останавливается вместо создания неподписанного APK.
+
+### Установка debug APK
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+При обычной установке приложение не получает статус Device Owner и покажет, что он требуется.
+
+### Назначение Device Owner для разработки
+
+Для тестирования используйте отдельное устройство или эмулятор без аккаунтов и без другого владельца устройства или рабочего профиля.
+
+```bash
+adb shell dpm set-device-owner \
+  com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver
+```
+
+Проверить владельца устройства:
+
+```bash
+adb shell dpm list-owners
+```
+
+Источником истины внутри приложения остаётся `DevicePolicyManager.isDeviceOwnerApp()`.
+
+### Функциональная проверка
+
+После назначения Device Owner:
+
+1. Запустите приложение и убедитесь, что состояние — `OFF`.
+2. Включите Bluetooth вручную.
+3. Включите защиту в Bluetooth Disable.
+4. Убедитесь, что приложение показывает `PROTECTED` только после подтверждения системного ограничения.
+5. Проверьте, что Android не позволяет штатно использовать Bluetooth.
+6. Закройте и снова откройте приложение — состояние должно остаться `PROTECTED`.
+7. Перезагрузите устройство — системная политика должна сохраниться.
+8. Снимите защиту.
+9. Убедитесь, что состояние вернулось в `OFF`.
+10. Проверьте, что Bluetooth снова можно включить вручную.

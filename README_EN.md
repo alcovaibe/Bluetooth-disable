@@ -2,6 +2,8 @@
 
 **Language:** [Russian](README.md) | [English](README_EN.md)
 
+**Developer guide:** [build and testing instructions](README.md#инструкция-для-разработчиков)
+
 A minimal Android DPC for system-level Bluetooth blocking on a fully managed device.
 
 ## Status
@@ -58,7 +60,7 @@ adb shell dpm set-device-owner \
 
 After that, the application can apply the system Bluetooth policy.
 
-Details: [`docs/DEVELOPMENT_EN.md`](docs/DEVELOPMENT_EN.md).
+The complete developer instructions are maintained in the main [`README.md`](README.md#инструкция-для-разработчиков).
 
 ## QR provisioning for users
 
