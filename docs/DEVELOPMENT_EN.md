@@ -1,6 +1,6 @@
 # Development setup
 
-**Language:** [Русский](DEVELOPMENT.md) | [English](DEVELOPMENT_EN.md)
+**Language:** [Russian](DEVELOPMENT.md) | [English](DEVELOPMENT_EN.md)
 
 ## Requirements
 
@@ -49,12 +49,12 @@ After assigning Device Owner:
 1. Launch the application.
 2. Confirm that it displays `OFF`.
 3. Enable Bluetooth manually in Android.
-4. Tap `ВКЛЮЧИТЬ ЗАЩИТУ`.
+4. Tap the protection enable button.
 5. Confirm that the application displays `PROTECTED` only after the restriction has been verified.
 6. Verify that Android no longer allows normal Bluetooth use.
 7. Close and reopen the application — the state should remain `PROTECTED`.
 8. Reboot the device — the system policy should persist.
-9. Tap `СНЯТЬ ЗАЩИТУ`.
+9. Tap the protection disable button.
 10. Confirm that the application displays `OFF` and Bluetooth can be enabled manually again.
 
 ## 5. What the application does not do yet
