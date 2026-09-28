@@ -1,5 +1,7 @@
 # Bluetooth Disable
 
+**Язык:** [Русский](README.md) | [English](README_EN.md)
+
 Минимальный Android DPC для системной блокировки Bluetooth на полностью управляемом устройстве.
 
 ## Статус
@@ -9,14 +11,14 @@
 - Android 8.0+ (`minSdk 26`);
 - `targetSdk 36`;
 - Kotlin + Jetpack Compose;
-- Device Owner / Device Policy Controller;
+- работа в роли владельца устройства и контроллера политики устройства (Device Owner / Device Policy Controller);
 - включение защиты через `UserManager.DISALLOW_BLUETOOTH`;
 - снятие защиты через `DevicePolicyManager.clearUserRestriction`;
-- фактическое состояние Android Device Policy является источником истины;
-- Android 12+ admin-integrated provisioning entry points;
-- шаблон QR provisioning для fully managed enrollment;
-- без root, Shizuku, Magisk, Accessibility Service и фонового сервиса;
-- без INTERNET permission и Bluetooth runtime permissions;
+- фактическое состояние политики устройства Android является источником истины;
+- точки входа интегрированного развертывания администратора для Android 12+;
+- шаблон QR-развертывания для регистрации полностью управляемого устройства;
+- без root-доступа, Shizuku, Magisk, службы специальных возможностей и фонового сервиса;
+- без разрешения `INTERNET` и разрешений Bluetooth, запрашиваемых во время выполнения;
 - без аналитики и телеметрии.
 
 ## Режимы
@@ -27,7 +29,7 @@ Bluetooth работает штатно.
 
 ### PROTECTED
 
-Device Owner применяет `UserManager.DISALLOW_BLUETOOTH`. Android системно запрещает использование Bluetooth до снятия ограничения.
+Владелец устройства применяет `UserManager.DISALLOW_BLUETOOTH`. Android системно запрещает использование Bluetooth до снятия ограничения.
 
 ## Сборка
 
@@ -41,27 +43,27 @@ Device Owner применяет `UserManager.DISALLOW_BLUETOOTH`. Android сис
 ./gradlew testDebugUnitTest lintDebug assembleDebug
 ```
 
-## Device Owner для разработки
+## Владелец устройства для разработки
 
-Обычная установка APK не делает приложение Device Owner.
+Обычная установка APK не делает приложение владельцем устройства.
 
-Для тестового устройства без аккаунтов установите debug APK, затем выполните:
+Для тестового устройства без аккаунтов установите отладочный APK, затем выполните:
 
 ```bash
 adb shell dpm set-device-owner \
   com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver
 ```
 
-После этого приложение сможет применять системную Bluetooth-политику.
+После этого приложение сможет применять системную политику Bluetooth.
 
 Подробности: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).
 
-## Provisioning для пользователей
+## QR-развертывание для пользователей
 
-Для production-развёртывания используется QR provisioning после factory reset. Android 12+ entry points уже реализованы; для финального QR ещё нужны подписанный release APK, стабильный публичный HTTPS URL и checksum конкретного APK.
+Для релизного развертывания используется QR-код после сброса устройства к заводским настройкам. Точки входа для Android 12+ уже реализованы; для финального QR-кода ещё нужны подписанный релизный APK, стабильный публичный HTTPS-адрес и контрольная сумма конкретного APK.
 
 Шаблон и процедура: [`docs/QR_PROVISIONING.md`](docs/QR_PROVISIONING.md).
 
 ## Безопасность
 
-Release keystore, пароли и signing credentials не должны храниться в репозитории.
+Релизное хранилище ключей, пароли и данные для подписи не должны храниться в репозитории.
