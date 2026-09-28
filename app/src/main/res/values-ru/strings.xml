@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">NoBluetooth</string>
-    <string name="device_admin_label">Администратор устройства NoBluetooth</string>
-    <string name="device_admin_description">Позволяет NoBluetooth применять системное ограничение Bluetooth, когда приложение назначено владельцем устройства.</string>
+    <string name="app_name">Bluetooth Disabler</string>
+    <string name="device_admin_label">Администратор устройства Bluetooth Disabler</string>
+    <string name="device_admin_description">Позволяет Bluetooth Disabler применять системное ограничение Bluetooth, когда приложение назначено владельцем устройства.</string>
 
     <string name="protection_title">Защита Bluetooth</string>
     <string name="status_ready">ВЫКЛЮЧЕНА</string>
@@ -29,19 +29,18 @@
     <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
     <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
 
-    <string name="theme_system">СИСТЕМА</string>
     <string name="theme_light">СВЕТЛАЯ</string>
     <string name="theme_dark">ТЁМНАЯ</string>
 
     <string name="launcher_section_title">Доступ к приложению</string>
-    <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек NoBluetooth.</string>
+    <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек Bluetooth Disabler.</string>
     <string name="action_hide_launcher">ИЗМЕНИТЬ ЗНАЧОК</string>
     <string name="action_show_launcher">ПОКАЗАТЬ ЗНАЧОК</string>
     <string name="action_add_tile">ДОБАВИТЬ ПЛИТКУ БЫСТРЫХ НАСТРОЕК</string>
     <string name="tile_manual_hint">На Android 8–12 плитка добавляется вручную через редактирование быстрых настроек.</string>
     <string name="hide_launcher_dialog_title">Скрыть значок приложения?</string>
-    <string name="hide_launcher_dialog_message">Значок NoBluetooth будет скрыт из списка приложений. Уже добавленный ярлык на главном экране может остаться — его можно удалить вручную. Сначала добавьте плитку NoBluetooth в быстрые настройки, чтобы через неё можно было снова открыть приложение.</string>
+    <string name="hide_launcher_dialog_message">Значок Bluetooth Disabler будет скрыт из списка приложений. Уже добавленный ярлык на главном экране может остаться — его можно удалить вручную. Сначала добавьте плитку Bluetooth Disabler в быстрые настройки, чтобы через неё можно было снова открыть приложение.</string>
     <string name="hide_launcher_confirm">СКРЫТЬ</string>
     <string name="cancel">ОТМЕНА</string>
-    <string name="qs_tile_label">NoBluetooth</string>
+    <string name="qs_tile_label">Bluetooth Disabler</string>
 </resources>
