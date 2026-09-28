@@ -11,8 +11,16 @@ local.properties
 /VK/
 /IcyMath/
 
+# Build outputs
+*.apk
+*.aab
+app/release/
+/app/release/
+
 # Signing material must never be committed
 *.jks
 *.keystore
 keystore.properties
 signing.properties
+keystore/
+/keystore/
