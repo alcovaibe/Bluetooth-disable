@@ -4,7 +4,7 @@
 
 ## Статус
 
-Первая рабочая основа V1:
+Рабочая основа V1:
 
 - Android 8.0+ (`minSdk 26`);
 - `targetSdk 36`;
@@ -13,6 +13,8 @@
 - включение защиты через `UserManager.DISALLOW_BLUETOOTH`;
 - снятие защиты через `DevicePolicyManager.clearUserRestriction`;
 - фактическое состояние Android Device Policy является источником истины;
+- Android 12+ admin-integrated provisioning entry points;
+- шаблон QR provisioning для fully managed enrollment;
 - без root, Shizuku, Magisk, Accessibility Service и фонового сервиса;
 - без INTERNET permission и Bluetooth runtime permissions;
 - без аналитики и телеметрии.
@@ -56,7 +58,9 @@ adb shell dpm set-device-owner \
 
 ## Provisioning для пользователей
 
-QR provisioning после factory reset будет реализован отдельным этапом. Он пока не входит в текущую реализацию.
+Для production-развёртывания используется QR provisioning после factory reset. Android 12+ entry points уже реализованы; для финального QR ещё нужны подписанный release APK, стабильный публичный HTTPS URL и checksum конкретного APK.
+
+Шаблон и процедура: [`docs/QR_PROVISIONING.md`](docs/QR_PROVISIONING.md).
 
 ## Безопасность
 
