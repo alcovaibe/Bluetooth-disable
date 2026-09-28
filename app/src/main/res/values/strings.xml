@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">Bluetooth Disable</string>
+    <string name="device_admin_label">Bluetooth Disable device administrator</string>
+    <string name="device_admin_description">Allows Bluetooth Disable to apply the Bluetooth restriction when this app is the device owner.</string>
+
+    <string name="protection_title">Bluetooth Protection</string>
+    <string name="status_not_provisioned">DEVICE OWNER REQUIRED</string>
+    <string name="status_ready">OFF</string>
+    <string name="status_enabling">ENABLING</string>
+    <string name="status_protected">PROTECTED</string>
+    <string name="status_disabling">DISABLING</string>
+    <string name="status_error">ERROR</string>
+    <string name="status_unsupported">UNSUPPORTED</string>
+
+    <string name="message_not_provisioned">Приложение установлено, но ещё не назначено владельцем устройства.</string>
+    <string name="message_ready">Bluetooth работает штатно.</string>
+    <string name="message_enabling">Android применяет системную блокировку Bluetooth…</string>
+    <string name="message_protected">Bluetooth заблокирован системной политикой Android.</string>
+    <string name="message_disabling">Android снимает системную блокировку Bluetooth…</string>
+    <string name="message_error">Не удалось подтвердить состояние системной политики.</string>
+    <string name="message_unsupported">Bluetooth-модуль не обнаружен на этом устройстве.</string>
+
+    <string name="action_enable">ВКЛЮЧИТЬ ЗАЩИТУ</string>
+    <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
+    <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
 </resources>

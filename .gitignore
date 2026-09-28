@@ -11,3 +11,8 @@ local.properties
 /VK/
 /IcyMath/
 
+# Signing material must never be committed
+*.jks
+*.keystore
+keystore.properties
+signing.properties
