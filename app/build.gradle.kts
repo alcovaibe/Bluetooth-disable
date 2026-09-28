@@ -17,9 +17,21 @@ val releaseSigningRequested = gradle.startParameter.taskNames.any { taskName ->
     taskName.contains("Release", ignoreCase = true)
 }
 
-fun signingProperty(name: String): String =
-    keystoreProperties.getProperty(name)?.takeIf { it.isNotBlank() }
-        ?: throw GradleException("Missing '$name' in keystore.properties.")
+fun signingValue(propertyName: String, environmentName: String): String? =
+    keystoreProperties.getProperty(propertyName)?.takeIf { it.isNotBlank() }
+        ?: System.getenv(environmentName)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = signingValue("storeFile", "RELEASE_STORE_FILE")
+val releaseStorePassword = signingValue("storePassword", "RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = signingValue("keyAlias", "RELEASE_KEY_ALIAS")
+val releaseKeyPassword = signingValue("keyPassword", "RELEASE_KEY_PASSWORD")
+
+val hasReleaseSigningConfig = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { !it.isNullOrBlank() }
 
 android {
     namespace = "com.pulse.bluetoothdisable"
@@ -36,24 +48,24 @@ android {
     }
 
     signingConfigs {
-        if (keystorePropertiesFile.exists()) {
+        if (hasReleaseSigningConfig) {
             create("release") {
-                storeFile = rootProject.file(signingProperty("storeFile"))
-                storePassword = signingProperty("storePassword")
-                keyAlias = signingProperty("keyAlias")
-                keyPassword = signingProperty("keyPassword")
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
             }
         }
     }
 
     buildTypes {
         release {
-            if (keystorePropertiesFile.exists()) {
+            if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             } else if (releaseSigningRequested) {
                 throw GradleException(
                     "Release signing is not configured. " +
-                        "Copy keystore.properties.example to keystore.properties and fill in your local signing values.",
+                        "Use local keystore.properties or RELEASE_* environment variables.",
                 )
             }
 
