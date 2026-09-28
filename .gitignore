@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea/
+.idea/
+/build/
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+/VK/
+/IcyMath/
+
