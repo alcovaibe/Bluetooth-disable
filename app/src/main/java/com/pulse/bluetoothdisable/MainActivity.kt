@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable
 import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
+import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
@@ -10,10 +11,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.localization.LanguageManager
@@ -37,6 +41,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        configureNavigationBarSurface()
 
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
         launcherIconController = LauncherIconController(this)
@@ -56,6 +61,15 @@ class MainActivity : ComponentActivity() {
                 ThemeManager.DARK
             } else {
                 ThemeManager.LIGHT
+            }
+            val view = LocalView.current
+
+            SideEffect {
+                configureNavigationBarSurface()
+                WindowCompat.getInsetsController(window, view).apply {
+                    isAppearanceLightStatusBars = !darkTheme
+                    isAppearanceLightNavigationBars = !darkTheme
+                }
             }
 
             BluetoothDisableTheme(darkTheme = darkTheme) {
@@ -91,6 +105,17 @@ class MainActivity : ComponentActivity() {
         }
         if (::launcherIconController.isInitialized) {
             launcherIconHidden = launcherIconController.isHidden()
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun configureNavigationBarSurface() {
+        window.navigationBarColor = Color.TRANSPARENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            window.navigationBarDividerColor = Color.TRANSPARENT
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
         }
     }
 
