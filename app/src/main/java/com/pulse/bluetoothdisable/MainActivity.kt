@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var launcherIconController: LauncherIconController
     private var launcherIconHidden by mutableStateOf(false)
     private var selectedLanguage by mutableStateOf(LanguageManager.ENGLISH)
-    private var selectedTheme by mutableStateOf(ThemeManager.SYSTEM)
+    private var selectedTheme by mutableStateOf<String?>(null)
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LanguageManager.wrapContext(newBase))
@@ -52,6 +52,11 @@ class MainActivity : ComponentActivity() {
                 ThemeManager.DARK -> true
                 else -> systemDarkTheme
             }
+            val effectiveTheme = selectedTheme ?: if (systemDarkTheme) {
+                ThemeManager.DARK
+            } else {
+                ThemeManager.LIGHT
+            }
 
             BluetoothDisableTheme(darkTheme = darkTheme) {
                 MainScreen(
@@ -59,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     launcherIconHidden = launcherIconHidden,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
-                    selectedTheme = selectedTheme,
+                    selectedTheme = effectiveTheme,
                     onLanguageSelected = ::changeLanguage,
                     onThemeSelected = ::changeTheme,
                     onEnableProtection = viewModel::enableProtection,

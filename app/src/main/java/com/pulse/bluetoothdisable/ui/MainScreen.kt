@@ -277,13 +277,6 @@ private fun ThemeSwitcher(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SelectorButton(
-            label = stringResource(R.string.theme_system),
-            selected = selectedTheme == ThemeManager.SYSTEM,
-            onClick = { onThemeSelected(ThemeManager.SYSTEM) },
-            compact = true,
-        )
-        SelectorDivider()
-        SelectorButton(
             label = stringResource(R.string.theme_light),
             selected = selectedTheme == ThemeManager.LIGHT,
             onClick = { onThemeSelected(ThemeManager.LIGHT) },
@@ -360,7 +353,7 @@ private fun MainScreenPreview() {
             launcherIconHidden = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
-            selectedTheme = ThemeManager.SYSTEM,
+            selectedTheme = ThemeManager.LIGHT,
             onLanguageSelected = {},
             onThemeSelected = {},
             onEnableProtection = {},
