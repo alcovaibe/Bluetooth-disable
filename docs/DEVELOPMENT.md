@@ -1,6 +1,6 @@
 # Настройка среды разработки
 
-**Язык:** [Русский](DEVELOPMENT.md) | [English](DEVELOPMENT_EN.md)
+**Язык:** [Русский](DEVELOPMENT.md) | [Английский](DEVELOPMENT_EN.md)
 
 ## Требования
 
