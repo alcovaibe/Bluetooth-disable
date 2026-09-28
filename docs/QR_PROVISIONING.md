@@ -1,6 +1,6 @@
 # QR-развертывание
 
-**Язык:** [Русский](QR_PROVISIONING.md) | [English](QR_PROVISIONING_EN.md)
+**Язык:** [Русский](QR_PROVISIONING.md) | [Английский](QR_PROVISIONING_EN.md)
 
 Bluetooth Disable предназначен для развертывания в качестве **полностью управляемого владельца устройства (Device Owner)** после сброса к заводским настройкам.
 
