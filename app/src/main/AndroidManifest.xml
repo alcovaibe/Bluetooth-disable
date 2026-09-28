@@ -5,6 +5,19 @@
         android:name="android.hardware.bluetooth"
         android:required="false" />
 
+    <!--
+        Bluetooth access is intentionally minimal. On Android 12+ only CONNECT is
+        declared so the Device Owner can request an immediate local adapter shutdown.
+        The app does not declare SCAN, ADVERTISE, or location permissions.
+    -->
+    <uses-permission
+        android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission
+        android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
