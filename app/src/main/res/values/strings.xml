@@ -23,4 +23,17 @@
     <string name="action_enable">ВКЛЮЧИТЬ ЗАЩИТУ</string>
     <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
     <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
+
+    <string name="launcher_section_title">Доступ к приложению</string>
+    <string name="launcher_visible">Значок приложения отображается в лаунчере.</string>
+    <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек.</string>
+    <string name="action_hide_launcher">СКРЫТЬ ЗНАЧОК</string>
+    <string name="action_show_launcher">ПОКАЗАТЬ ЗНАЧОК</string>
+    <string name="action_add_tile">ДОБАВИТЬ ПЛИТКУ</string>
+    <string name="tile_manual_hint">На Android 8–12 плитка добавляется вручную через редактирование быстрых настроек.</string>
+    <string name="hide_launcher_dialog_title">Скрыть значок?</string>
+    <string name="hide_launcher_dialog_message">После скрытия NoBluetooth исчезнет с рабочего стола и из списка приложений. Перед этим добавьте плитку NoBluetooth в быстрые настройки — через неё приложение можно открыть снова.</string>
+    <string name="hide_launcher_confirm">СКРЫТЬ</string>
+    <string name="cancel">ОТМЕНА</string>
+    <string name="qs_tile_label">NoBluetooth</string>
 </resources>
