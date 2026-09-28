@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
+import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.MainScreen
 import com.pulse.bluetoothdisable.ui.MainViewModel
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
@@ -26,6 +28,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var launcherIconController: LauncherIconController
     private var launcherIconHidden by mutableStateOf(false)
     private var selectedLanguage by mutableStateOf(LanguageManager.ENGLISH)
+    private var selectedTheme by mutableStateOf(ThemeManager.SYSTEM)
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LanguageManager.wrapContext(newBase))
@@ -39,17 +42,26 @@ class MainActivity : ComponentActivity() {
         launcherIconController = LauncherIconController(this)
         launcherIconHidden = launcherIconController.isHidden()
         selectedLanguage = LanguageManager.getSelectedLanguage(this)
+        selectedTheme = ThemeManager.getSelectedTheme(this)
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
+            val systemDarkTheme = isSystemInDarkTheme()
+            val darkTheme = when (selectedTheme) {
+                ThemeManager.LIGHT -> false
+                ThemeManager.DARK -> true
+                else -> systemDarkTheme
+            }
 
-            BluetoothDisableTheme {
+            BluetoothDisableTheme(darkTheme = darkTheme) {
                 MainScreen(
                     uiState = uiState,
                     launcherIconHidden = launcherIconHidden,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
+                    selectedTheme = selectedTheme,
                     onLanguageSelected = ::changeLanguage,
+                    onThemeSelected = ::changeTheme,
                     onEnableProtection = viewModel::enableProtection,
                     onDisableProtection = viewModel::disableProtection,
                     onRefresh = viewModel::refresh,
@@ -82,6 +94,12 @@ class MainActivity : ComponentActivity() {
         LanguageManager.setSelectedLanguage(this, language)
         selectedLanguage = language
         recreate()
+    }
+
+    private fun changeTheme(theme: String) {
+        if (selectedTheme == theme) return
+        ThemeManager.setSelectedTheme(this, theme)
+        selectedTheme = theme
     }
 
     private fun requestQuickSettingsTile() {
