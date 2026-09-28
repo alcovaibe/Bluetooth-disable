@@ -29,6 +29,10 @@
     <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
     <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
 
+    <string name="theme_system">СИСТЕМА</string>
+    <string name="theme_light">СВЕТЛАЯ</string>
+    <string name="theme_dark">ТЁМНАЯ</string>
+
     <string name="launcher_section_title">Доступ к приложению</string>
     <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек NoBluetooth.</string>
     <string name="action_hide_launcher">ИЗМЕНИТЬ ЗНАЧОК</string>
