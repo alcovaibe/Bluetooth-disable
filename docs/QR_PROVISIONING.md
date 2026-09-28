@@ -1,21 +1,23 @@
-# QR provisioning
+# QR-развертывание
 
-Bluetooth Disable is intended to be provisioned as a **fully managed Device Owner** after a factory reset.
+**Язык:** [Русский](QR_PROVISIONING.md) | [English](QR_PROVISIONING_EN.md)
 
-Android recommends QR enrollment for fully managed / dedicated devices. The QR payload must point to the signed APK and include a checksum so Setup Wizard can verify the downloaded package.
+Bluetooth Disable предназначен для развертывания в качестве **полностью управляемого владельца устройства (Device Owner)** после сброса к заводским настройкам.
+
+Android рекомендует регистрацию по QR-коду для полностью управляемых и выделенных устройств. QR-нагрузка должна указывать на подписанный APK и содержать контрольную сумму, чтобы мастер первоначальной настройки Android мог проверить загруженный пакет.
 
 ## Android 12+
 
-The application implements the two admin-integrated provisioning entry points required on Android 12 and newer:
+Приложение реализует две точки входа интегрированного развертывания администратора, необходимые в Android 12 и новее:
 
 - `android.app.action.GET_PROVISIONING_MODE`;
 - `android.app.action.ADMIN_POLICY_COMPLIANCE`.
 
-The first selects `PROVISIONING_MODE_FULLY_MANAGED_DEVICE`. The second completes provisioning only after Android confirms that this package is the Device Owner.
+Первая выбирает `PROVISIONING_MODE_FULLY_MANAGED_DEVICE`. Вторая завершает развертывание только после того, как Android подтверждает, что этот пакет является владельцем устройства.
 
-## Release APK checksum
+## Контрольная сумма релизного APK
 
-After building the exact APK that will be hosted, calculate the URL-safe Base64 SHA-256 package checksum:
+После сборки точного APK, который будет размещён на сервере, вычислите контрольную сумму пакета SHA-256 в Base64, безопасной для URL:
 
 ```bash
 openssl dgst -sha256 -binary app-release.apk \
@@ -24,11 +26,11 @@ openssl dgst -sha256 -binary app-release.apk \
   | tr -d '='
 ```
 
-The checksum is tied to the exact APK bytes. Rebuilding or modifying the APK requires generating a new checksum and QR payload.
+Контрольная сумма привязана к точным байтам APK. Повторная сборка или изменение APK требует создания новой контрольной суммы и новой QR-нагрузки.
 
-## QR payload template
+## Шаблон QR-нагрузки
 
-Replace both placeholders before generating the QR code:
+Перед созданием QR-кода замените оба заполнителя:
 
 ```json
 {
@@ -38,26 +40,26 @@ Replace both placeholders before generating the QR code:
 }
 ```
 
-The APK URL must be reachable from Android Setup Wizard over HTTPS.
+APK должен быть доступен мастеру первоначальной настройки Android по HTTPS.
 
-## Enrollment flow
+## Процесс регистрации
 
-1. Build and sign the release APK.
-2. Publish the **same APK bytes** at the public HTTPS URL from the payload.
-3. Calculate the package checksum.
-4. Generate the QR code from the completed JSON payload.
-5. Factory-reset the test device.
-6. Start the Android QR provisioning flow from Setup Wizard.
-7. Connect the device to the internet when requested.
-8. Scan the QR code.
-9. Setup Wizard downloads and verifies the APK.
-10. Android installs the DPC and assigns it as Device Owner.
-11. The app returns fully-managed mode during `GET_PROVISIONING_MODE`.
-12. Provisioning completes only when `ADMIN_POLICY_COMPLIANCE` confirms Device Owner status.
-13. Open the application and test Bluetooth protection.
+1. Соберите и подпишите релизный APK.
+2. Разместите **те же самые байты APK** по публичному HTTPS-адресу из QR-нагрузки.
+3. Вычислите контрольную сумму пакета.
+4. Создайте QR-код из заполненной JSON-нагрузки.
+5. Сбросьте тестовое устройство к заводским настройкам.
+6. Запустите процесс QR-развертывания Android из мастера первоначальной настройки.
+7. Подключите устройство к интернету, когда система запросит подключение.
+8. Отсканируйте QR-код.
+9. Мастер первоначальной настройки загрузит и проверит APK.
+10. Android установит DPC и назначит его владельцем устройства.
+11. Приложение вернёт режим полностью управляемого устройства во время `GET_PROVISIONING_MODE`.
+12. Развертывание завершится только после того, как `ADMIN_POLICY_COMPLIANCE` подтвердит статус владельца устройства.
+13. Откройте приложение и проверьте работу защиты Bluetooth.
 
-## Important
+## Важно
 
-Android 13+ expects internet connectivity during company-owned provisioning by default. We intentionally do not enable offline provisioning because the DPC itself is downloaded from a public HTTPS endpoint.
+Android 13+ по умолчанию ожидает подключение к интернету во время развертывания устройства, принадлежащего организации. Мы намеренно не включаем автономное развертывание, поскольку сам DPC загружается с публичного HTTPS-адреса.
 
-Do not publish a QR code until the release signing key and stable APK URL are finalized. Changing the APK changes the package checksum.
+Не публикуйте QR-код, пока не будут окончательно определены релизный ключ подписи и стабильный адрес APK. Изменение APK изменяет контрольную сумму пакета.
