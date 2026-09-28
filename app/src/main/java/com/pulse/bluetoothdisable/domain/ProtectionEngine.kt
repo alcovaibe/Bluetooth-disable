@@ -23,7 +23,7 @@ class ProtectionEngine(
             ProtectionResult.Success(state)
         } catch (error: Throwable) {
             ProtectionResult.Failure(
-                message = "Не удалось прочитать системную политику Bluetooth.",
+                error = ProtectionError.READ_POLICY,
                 cause = error,
             )
         }
@@ -44,12 +44,12 @@ class ProtectionEngine(
                 ProtectionResult.Success(ProtectionState.PROTECTED)
             } else {
                 ProtectionResult.Failure(
-                    message = "Android не подтвердил включение системной блокировки Bluetooth.",
+                    error = ProtectionError.ENABLE_NOT_CONFIRMED,
                 )
             }
         } catch (error: Throwable) {
             ProtectionResult.Failure(
-                message = "Не удалось включить системную блокировку Bluetooth.",
+                error = ProtectionError.ENABLE_POLICY,
                 cause = error,
             )
         }
@@ -70,12 +70,12 @@ class ProtectionEngine(
                 ProtectionResult.Success(ProtectionState.READY)
             } else {
                 ProtectionResult.Failure(
-                    message = "Android не подтвердил снятие системной блокировки Bluetooth.",
+                    error = ProtectionError.DISABLE_NOT_CONFIRMED,
                 )
             }
         } catch (error: Throwable) {
             ProtectionResult.Failure(
-                message = "Не удалось снять системную блокировку Bluetooth.",
+                error = ProtectionError.DISABLE_POLICY,
                 cause = error,
             )
         }

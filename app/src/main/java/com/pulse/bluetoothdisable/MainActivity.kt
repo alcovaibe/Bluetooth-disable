@@ -2,6 +2,7 @@ package com.pulse.bluetoothdisable
 
 import android.app.StatusBarManager
 import android.content.ComponentName
+import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
@@ -14,6 +15,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
+import com.pulse.bluetoothdisable.locale.AppLanguage
+import com.pulse.bluetoothdisable.locale.AppLanguageController
 import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
 import com.pulse.bluetoothdisable.ui.MainScreen
 import com.pulse.bluetoothdisable.ui.MainViewModel
@@ -23,6 +26,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: MainViewModel
     private lateinit var launcherIconController: LauncherIconController
     private var launcherIconHidden by mutableStateOf(false)
+    private var selectedLanguage by mutableStateOf(AppLanguage.ENGLISH)
+
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguageController.wrapContext(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +39,7 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
         launcherIconController = LauncherIconController(this)
         launcherIconHidden = launcherIconController.isHidden()
+        selectedLanguage = AppLanguageController.currentLanguage(this)
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -40,6 +49,8 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     launcherIconHidden = launcherIconHidden,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+                    selectedLanguage = selectedLanguage,
+                    onLanguageSelected = ::setAppLanguage,
                     onEnableProtection = viewModel::enableProtection,
                     onDisableProtection = viewModel::disableProtection,
                     onRefresh = viewModel::refresh,
@@ -64,6 +75,18 @@ class MainActivity : ComponentActivity() {
         }
         if (::launcherIconController.isInitialized) {
             launcherIconHidden = launcherIconController.isHidden()
+        }
+        selectedLanguage = AppLanguageController.currentLanguage(this)
+    }
+
+    private fun setAppLanguage(language: AppLanguage) {
+        if (language == selectedLanguage) return
+
+        selectedLanguage = language
+        AppLanguageController.setLanguage(this, language)
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            recreate()
         }
     }
 

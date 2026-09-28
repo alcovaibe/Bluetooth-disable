@@ -1,7 +1,9 @@
 package com.pulse.bluetoothdisable.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,7 +31,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.pulse.bluetoothdisable.R
+import com.pulse.bluetoothdisable.domain.ProtectionError
 import com.pulse.bluetoothdisable.domain.ProtectionState
+import com.pulse.bluetoothdisable.locale.AppLanguage
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 @Composable
@@ -37,6 +41,8 @@ fun MainScreen(
     uiState: ProtectionUiState,
     launcherIconHidden: Boolean,
     canRequestTile: Boolean,
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
     onEnableProtection: () -> Unit,
     onDisableProtection: () -> Unit,
     onRefresh: () -> Unit,
@@ -48,142 +54,153 @@ fun MainScreen(
     var showHideDialog by remember { mutableStateOf(false) }
 
     Surface(modifier = modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.protection_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.height(32.dp))
-
-            val statusText = when (uiState.state) {
-                ProtectionState.NOT_PROVISIONED -> R.string.status_not_provisioned
-                ProtectionState.READY -> R.string.status_ready
-                ProtectionState.ENABLING -> R.string.status_enabling
-                ProtectionState.PROTECTED -> R.string.status_protected
-                ProtectionState.DISABLING -> R.string.status_disabling
-                ProtectionState.ERROR -> R.string.status_error
-                ProtectionState.UNSUPPORTED -> R.string.status_unsupported
-            }
-            Text(
-                text = stringResource(statusText),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
+        Box(modifier = Modifier.fillMaxSize()) {
+            LanguageSwitcher(
+                selectedLanguage = selectedLanguage,
+                onLanguageSelected = onLanguageSelected,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 16.dp, end = 12.dp),
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            val messageText = when (uiState.state) {
-                ProtectionState.NOT_PROVISIONED -> stringResource(R.string.message_not_provisioned)
-                ProtectionState.READY -> stringResource(R.string.message_ready)
-                ProtectionState.ENABLING -> stringResource(R.string.message_enabling)
-                ProtectionState.PROTECTED -> stringResource(R.string.message_protected)
-                ProtectionState.DISABLING -> stringResource(R.string.message_disabling)
-                ProtectionState.ERROR -> uiState.errorMessage
-                    ?: stringResource(R.string.message_error)
-                ProtectionState.UNSUPPORTED -> stringResource(R.string.message_unsupported)
-            }
-            Text(
-                text = messageText,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-
-            if (uiState.state == ProtectionState.ENABLING ||
-                uiState.state == ProtectionState.DISABLING
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 24.dp, end = 24.dp, top = 72.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Spacer(modifier = Modifier.height(24.dp))
-                CircularProgressIndicator()
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            when (uiState.state) {
-                ProtectionState.READY -> ActionButton(
-                    text = stringResource(R.string.action_enable),
-                    onClick = onEnableProtection,
-                )
-
-                ProtectionState.PROTECTED -> ActionButton(
-                    text = stringResource(R.string.action_disable),
-                    onClick = onDisableProtection,
-                )
-
-                ProtectionState.NOT_PROVISIONED,
-                ProtectionState.ERROR -> ActionButton(
-                    text = stringResource(R.string.action_refresh),
-                    onClick = onRefresh,
-                )
-
-                ProtectionState.ENABLING,
-                ProtectionState.DISABLING,
-                ProtectionState.UNSUPPORTED -> Unit
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Text(
-                text = stringResource(R.string.launcher_section_title),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(
-                    if (launcherIconHidden) {
-                        R.string.launcher_hidden
-                    } else {
-                        R.string.launcher_visible
-                    },
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-
-            if (canRequestTile) {
-                OutlinedButton(
-                    onClick = onRequestAddTile,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(text = stringResource(R.string.action_add_tile))
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-            } else {
                 Text(
-                    text = stringResource(R.string.tile_manual_hint),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = stringResource(R.string.protection_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
+                val statusText = when (uiState.state) {
+                    ProtectionState.NOT_PROVISIONED -> R.string.status_not_provisioned
+                    ProtectionState.READY -> R.string.status_ready
+                    ProtectionState.ENABLING -> R.string.status_enabling
+                    ProtectionState.PROTECTED -> R.string.status_protected
+                    ProtectionState.DISABLING -> R.string.status_disabling
+                    ProtectionState.ERROR -> R.string.status_error
+                    ProtectionState.UNSUPPORTED -> R.string.status_unsupported
+                }
+                Text(
+                    text = stringResource(statusText),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                val messageText = when (uiState.state) {
+                    ProtectionState.NOT_PROVISIONED -> stringResource(R.string.message_not_provisioned)
+                    ProtectionState.READY -> stringResource(R.string.message_ready)
+                    ProtectionState.ENABLING -> stringResource(R.string.message_enabling)
+                    ProtectionState.PROTECTED -> stringResource(R.string.message_protected)
+                    ProtectionState.DISABLING -> stringResource(R.string.message_disabling)
+                    ProtectionState.ERROR -> stringResource(
+                        uiState.error?.toMessageResource() ?: R.string.message_error,
+                    )
+                    ProtectionState.UNSUPPORTED -> stringResource(R.string.message_unsupported)
+                }
+                Text(
+                    text = messageText,
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+
+                if (uiState.state == ProtectionState.ENABLING ||
+                    uiState.state == ProtectionState.DISABLING
+                ) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    CircularProgressIndicator()
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                when (uiState.state) {
+                    ProtectionState.READY -> ActionButton(
+                        text = stringResource(R.string.action_enable),
+                        onClick = onEnableProtection,
+                    )
+
+                    ProtectionState.PROTECTED -> ActionButton(
+                        text = stringResource(R.string.action_disable),
+                        onClick = onDisableProtection,
+                    )
+
+                    ProtectionState.NOT_PROVISIONED,
+                    ProtectionState.ERROR -> ActionButton(
+                        text = stringResource(R.string.action_refresh),
+                        onClick = onRefresh,
+                    )
+
+                    ProtectionState.ENABLING,
+                    ProtectionState.DISABLING,
+                    ProtectionState.UNSUPPORTED -> Unit
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                Text(
+                    text = stringResource(R.string.launcher_section_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth(),
                 )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            OutlinedButton(
-                onClick = {
-                    if (launcherIconHidden) {
-                        onShowLauncherIcon()
-                    } else {
-                        showHideDialog = true
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(
                         if (launcherIconHidden) {
-                            R.string.action_show_launcher
+                            R.string.launcher_hidden
                         } else {
-                            R.string.action_hide_launcher
+                            R.string.launcher_visible
                         },
                     ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.fillMaxWidth(),
                 )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (canRequestTile) {
+                    OutlinedButton(
+                        onClick = onRequestAddTile,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(text = stringResource(R.string.action_add_tile))
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                } else {
+                    Text(
+                        text = stringResource(R.string.tile_manual_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                OutlinedButton(
+                    onClick = {
+                        if (launcherIconHidden) {
+                            onShowLauncherIcon()
+                        } else {
+                            showHideDialog = true
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        text = stringResource(
+                            if (launcherIconHidden) {
+                                R.string.action_show_launcher
+                            } else {
+                                R.string.action_hide_launcher
+                            },
+                        ),
+                    )
+                }
             }
         }
     }
@@ -213,6 +230,60 @@ fun MainScreen(
 }
 
 @Composable
+private fun LanguageSwitcher(
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LanguageButton(
+            label = "RU",
+            selected = selectedLanguage == AppLanguage.RUSSIAN,
+            onClick = { onLanguageSelected(AppLanguage.RUSSIAN) },
+        )
+        Text(
+            text = "|",
+            color = MaterialTheme.colorScheme.outline,
+        )
+        LanguageButton(
+            label = "EN",
+            selected = selectedLanguage == AppLanguage.ENGLISH,
+            onClick = { onLanguageSelected(AppLanguage.ENGLISH) },
+        )
+    }
+}
+
+@Composable
+private fun LanguageButton(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    TextButton(onClick = onClick) {
+        Text(
+            text = label,
+            color = if (selected) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+        )
+    }
+}
+
+private fun ProtectionError.toMessageResource(): Int = when (this) {
+    ProtectionError.READ_POLICY -> R.string.error_read_policy
+    ProtectionError.ENABLE_POLICY -> R.string.error_enable_policy
+    ProtectionError.ENABLE_NOT_CONFIRMED -> R.string.error_enable_not_confirmed
+    ProtectionError.DISABLE_POLICY -> R.string.error_disable_policy
+    ProtectionError.DISABLE_NOT_CONFIRMED -> R.string.error_disable_not_confirmed
+}
+
+@Composable
 private fun ActionButton(
     text: String,
     onClick: () -> Unit,
@@ -233,6 +304,8 @@ private fun MainScreenPreview() {
             uiState = ProtectionUiState(state = ProtectionState.READY),
             launcherIconHidden = false,
             canRequestTile = true,
+            selectedLanguage = AppLanguage.ENGLISH,
+            onLanguageSelected = {},
             onEnableProtection = {},
             onDisableProtection = {},
             onRefresh = {},
