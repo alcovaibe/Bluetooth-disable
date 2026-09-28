@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -60,29 +61,31 @@ fun MainScreen(
 
     Surface(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(
+            ThemeSwitcher(
+                selectedTheme = selectedTheme,
+                onThemeSelected = onThemeSelected,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .statusBarsPadding()
+                    .padding(top = 8.dp, start = 12.dp)
+                    .zIndex(1f),
+            )
+
+            LanguageSwitcher(
+                selectedLanguage = selectedLanguage,
+                onLanguageSelected = onLanguageSelected,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
                     .padding(top = 8.dp, end = 12.dp)
                     .zIndex(1f),
-                horizontalAlignment = Alignment.End,
-            ) {
-                LanguageSwitcher(
-                    selectedLanguage = selectedLanguage,
-                    onLanguageSelected = onLanguageSelected,
-                )
-                ThemeSwitcher(
-                    selectedTheme = selectedTheme,
-                    onThemeSelected = onThemeSelected,
-                )
-            }
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 24.dp, top = 120.dp, end = 24.dp, bottom = 24.dp),
+                    .padding(start = 24.dp, top = 72.dp, end = 24.dp, bottom = 24.dp),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -90,6 +93,8 @@ fun MainScreen(
                     text = stringResource(R.string.protection_title),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
@@ -107,6 +112,8 @@ fun MainScreen(
                         text = stringResource(statusText),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
@@ -123,6 +130,8 @@ fun MainScreen(
                 Text(
                     text = messageText,
                     style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 if (uiState.state == ProtectionState.ENABLING ||
@@ -162,6 +171,7 @@ fun MainScreen(
                     text = stringResource(R.string.launcher_section_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -170,6 +180,7 @@ fun MainScreen(
                     Text(
                         text = stringResource(R.string.launcher_hidden),
                         style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -180,13 +191,17 @@ fun MainScreen(
                         onClick = onRequestAddTile,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Text(text = stringResource(R.string.action_add_tile))
+                        Text(
+                            text = stringResource(R.string.action_add_tile),
+                            textAlign = TextAlign.Center,
+                        )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 } else {
                     Text(
                         text = stringResource(R.string.tile_manual_hint),
                         style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -210,6 +225,7 @@ fun MainScreen(
                                 R.string.action_hide_launcher
                             },
                         ),
+                        textAlign = TextAlign.Center,
                     )
                 }
             }
@@ -219,8 +235,20 @@ fun MainScreen(
     if (showHideDialog) {
         AlertDialog(
             onDismissRequest = { showHideDialog = false },
-            title = { Text(stringResource(R.string.hide_launcher_dialog_title)) },
-            text = { Text(stringResource(R.string.hide_launcher_dialog_message)) },
+            title = {
+                Text(
+                    text = stringResource(R.string.hide_launcher_dialog_title),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.hide_launcher_dialog_message),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -340,7 +368,10 @@ private fun ActionButton(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(text = text)
+        Text(
+            text = text,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
