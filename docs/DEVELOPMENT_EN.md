@@ -17,6 +17,29 @@
 
 The debug APK is produced by the standard Android Gradle Plugin in `app/build/outputs/apk/debug/`.
 
+### Automatic release APK signing
+
+The repository contains `keystore.properties.example`, but never stores the signing key or passwords.
+
+1. Copy `keystore.properties.example` to `keystore.properties` in the project root.
+2. Fill in the path to the existing permanent release keystore, store password, key alias, and key password.
+3. Use the same keystore that signed the previous public NoBluetooth APK.
+4. Build the release APK:
+
+```bash
+./gradlew assembleRelease
+```
+
+On Windows:
+
+```powershell
+.\gradlew.bat assembleRelease
+```
+
+The signed APK is created at `app/build/outputs/apk/release/app-release.apk`.
+
+`keystore.properties`, `*.jks`, and `*.keystore` are excluded by `.gitignore` and must never be pushed to GitHub. If `keystore.properties` is missing during a release build, Gradle stops instead of silently producing an unsigned release APK.
+
 ## 2. Install the APK
 
 ```bash

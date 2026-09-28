@@ -17,6 +17,29 @@
 
 Отладочный APK создаётся стандартным Android Gradle Plugin в `app/build/outputs/apk/debug/`.
 
+### Автоподпись release APK
+
+Репозиторий содержит шаблон `keystore.properties.example`, но не содержит ключ подписи и пароли.
+
+1. Скопируйте `keystore.properties.example` в `keystore.properties` в корне проекта.
+2. Укажите путь к существующему постоянному release-keystore, пароль хранилища, alias ключа и пароль ключа.
+3. Используйте тот же keystore, которым был подписан предыдущий публичный APK NoBluetooth.
+4. Соберите release:
+
+```bash
+./gradlew assembleRelease
+```
+
+На Windows:
+
+```powershell
+.\gradlew.bat assembleRelease
+```
+
+Подписанный APK создаётся в `app/build/outputs/apk/release/app-release.apk`.
+
+`keystore.properties`, `*.jks` и `*.keystore` исключены через `.gitignore` и не должны попадать в GitHub. Если при release-сборке `keystore.properties` отсутствует, Gradle останавливает сборку вместо создания случайного неподписанного release APK.
+
 ## 2. Установка APK
 
 ```bash
