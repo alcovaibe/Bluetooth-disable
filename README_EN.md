@@ -2,72 +2,79 @@
 
 **Language:** [Russian](README.md) | [English](README_EN.md)
 
-**Developer guide:** [build and testing instructions](README.md#инструкция-для-разработчиков)
+Bluetooth Disable is an Android application that provides system-level Bluetooth blocking on a device.
 
-A minimal Android DPC for system-level Bluetooth blocking on a fully managed device.
+Unlike simply turning Bluetooth off, protection mode uses Android Device Policy. While protection is active, Android prevents normal Bluetooth use until the restriction is removed.
 
-## Status
+## Features
 
-Working V1 foundation:
+- system-level Bluetooth blocking;
+- immediate Bluetooth shutdown when protection is enabled;
+- protection persists after closing the app and rebooting the device;
+- simple manual `OFF / PROTECTED` mode;
+- quick access through an Android Quick Settings tile;
+- option to hide the app from the launcher;
+- Russian and English interface;
+- no root required;
+- no Shizuku, Magisk, or Accessibility Service;
+- no background service;
+- no analytics or telemetry;
+- no Internet access.
 
-- Android 8.0+ (`minSdk 26`);
-- `targetSdk 36`;
-- Kotlin + Jetpack Compose;
-- Device Owner / Device Policy Controller operation;
-- protection enabled through `UserManager.DISALLOW_BLUETOOTH`;
-- immediate local Bluetooth adapter shutdown request when protection is enabled;
-- protection disabled through `DevicePolicyManager.clearUserRestriction`;
-- the effective Android Device Policy state is the source of truth;
-- Android 12+ admin-integrated provisioning entry points;
-- QR provisioning template for fully managed enrollment;
-- no root, Shizuku, Magisk, Accessibility Service, or background service;
-- no `INTERNET` permission;
-- on Android 12+, `BLUETOOTH_CONNECT` is used only to request immediate shutdown of the local adapter; the app does not request `BLUETOOTH_SCAN`, `BLUETOOTH_ADVERTISE`, or location access and does not enumerate bonded devices;
-- no analytics or telemetry.
+## How protection works
 
-## Modes
+Bluetooth Disable operates as a **Device Policy Controller (DPC)** with **Device Owner** status.
 
-### NORMAL
+When protection is enabled, the app applies the Android system restriction:
 
-Bluetooth works normally.
+`UserManager.DISALLOW_BLUETOOTH`
 
-### PROTECTED
+Android then blocks Bluetooth use until the restriction is removed.
 
-The Device Owner applies `UserManager.DISALLOW_BLUETOOTH`. Android blocks Bluetooth system-wide until the restriction is removed.
+The protection state is stored by Android Device Policy and does not depend on whether the app process is running.
 
-## Build
+## Privacy
 
-```bash
-./gradlew assembleDebug
-```
+Bluetooth Disable follows a least-privilege approach.
 
-Full local verification:
+The app:
 
-```bash
-./gradlew testDebugUnitTest lintDebug assembleDebug
-```
+- contains no ads;
+- contains no analytics;
+- contains no trackers;
+- does not request the `INTERNET` permission;
+- does not scan for Bluetooth devices;
+- does not request location access;
+- does not enumerate paired devices;
+- does not connect to Bluetooth devices.
 
-## Device Owner for development
+On Android 12 and later, `BLUETOOTH_CONNECT` is used to request immediate shutdown of the local Bluetooth adapter when protection is activated.
 
-Installing the APK normally does not make the application the Device Owner.
+## Requirements
 
-On a test device without accounts, install the debug APK and then run:
+- Android 8.0 or later;
+- the device must be configured with Bluetooth Disable as Device Owner.
 
-```bash
-adb shell dpm set-device-owner \
-  com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver
-```
+Assigning Device Owner on a regular user device requires initial setup after a factory reset.
 
-After that, the application can apply the system Bluetooth policy.
+## Installation
 
-The complete developer instructions are maintained in the main [`README.md`](README.md#инструкция-для-разработчиков).
+Ready-to-use APKs are published in [Releases](../../releases).
 
-## QR provisioning for users
+For full protection functionality, Bluetooth Disable must be installed as Device Owner.
 
-Production deployment uses QR provisioning after a factory reset. The Android 12+ entry points are already implemented; the final QR code still requires a signed release APK, a stable public HTTPS URL, and the checksum of the exact APK.
+## Project status
 
-Template and procedure: [`docs/QR_PROVISIONING_EN.md`](docs/QR_PROVISIONING_EN.md).
+Bluetooth Disable is under active development.
 
-## Security
+The core system-level Bluetooth blocking mechanism is implemented and has been tested on a physical Android device.
 
-The release keystore, passwords, and signing credentials must never be stored in the repository.
+Support and behavior may vary depending on the device manufacturer and Android version.
+
+## Technology
+
+- Kotlin;
+- Jetpack Compose;
+- Android DevicePolicyManager;
+- Android Enterprise / Device Owner;
+- minSdk 26.
