@@ -1,6 +1,6 @@
 # Bluetooth Disable
 
-**Язык:** [Русский](README.md) | [English](README_EN.md)
+**Язык:** [Русский](README.md) | [Английский](README_EN.md)
 
 Минимальный Android DPC для системной блокировки Bluetooth на полностью управляемом устройстве.
 
