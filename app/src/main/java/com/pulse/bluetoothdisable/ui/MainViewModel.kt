@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import com.pulse.bluetoothdisable.admin.DeviceOwnerManager
 import com.pulse.bluetoothdisable.diagnostics.CapabilityDetector
 import com.pulse.bluetoothdisable.domain.ProtectionEngine
+import com.pulse.bluetoothdisable.domain.ProtectionError
 import com.pulse.bluetoothdisable.domain.ProtectionResult
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.policy.AndroidBluetoothPolicyController
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 data class ProtectionUiState(
     val state: ProtectionState = ProtectionState.NOT_PROVISIONED,
-    val errorMessage: String? = null,
+    val error: ProtectionError? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
@@ -50,7 +51,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             is ProtectionResult.Success -> ProtectionUiState(state = result.state)
             is ProtectionResult.Failure -> ProtectionUiState(
                 state = ProtectionState.ERROR,
-                errorMessage = result.message,
+                error = result.error,
             )
         }
     }

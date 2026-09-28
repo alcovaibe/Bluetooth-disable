@@ -1,0 +1,45 @@
+<resources>
+    <string name="app_name">NoBluetooth</string>
+    <string name="device_admin_label">Администратор устройства NoBluetooth</string>
+    <string name="device_admin_description">Позволяет NoBluetooth применять системное ограничение Bluetooth, когда приложение назначено владельцем устройства.</string>
+
+    <string name="protection_title">Защита Bluetooth</string>
+    <string name="status_not_provisioned">ТРЕБУЕТСЯ ВЛАДЕЛЕЦ УСТРОЙСТВА</string>
+    <string name="status_ready">ВЫКЛЮЧЕНА</string>
+    <string name="status_enabling">ВКЛЮЧЕНИЕ</string>
+    <string name="status_protected">ЗАЩИЩЕНО</string>
+    <string name="status_disabling">ОТКЛЮЧЕНИЕ</string>
+    <string name="status_error">ОШИБКА</string>
+    <string name="status_unsupported">НЕ ПОДДЕРЖИВАЕТСЯ</string>
+
+    <string name="message_not_provisioned">Приложение установлено, но ещё не назначено владельцем устройства.</string>
+    <string name="message_ready">Bluetooth работает штатно.</string>
+    <string name="message_enabling">Android применяет системную блокировку Bluetooth…</string>
+    <string name="message_protected">Bluetooth заблокирован системной политикой Android.</string>
+    <string name="message_disabling">Android снимает системную блокировку Bluetooth…</string>
+    <string name="message_error">Не удалось подтвердить состояние системной политики.</string>
+    <string name="message_unsupported">Bluetooth-модуль не обнаружен на этом устройстве.</string>
+
+    <string name="error_read_policy">Не удалось прочитать системную политику Bluetooth.</string>
+    <string name="error_enable_not_confirmed">Android не подтвердил включение системной блокировки Bluetooth.</string>
+    <string name="error_enable_failed">Не удалось включить системную блокировку Bluetooth.</string>
+    <string name="error_disable_not_confirmed">Android не подтвердил снятие системной блокировки Bluetooth.</string>
+    <string name="error_disable_failed">Не удалось снять системную блокировку Bluetooth.</string>
+
+    <string name="action_enable">ВКЛЮЧИТЬ ЗАЩИТУ</string>
+    <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
+    <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
+
+    <string name="launcher_section_title">Доступ к приложению</string>
+    <string name="launcher_visible">Значок приложения отображается в списке приложений.</string>
+    <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек NoBluetooth.</string>
+    <string name="action_hide_launcher">СКРЫТЬ ЗНАЧОК</string>
+    <string name="action_show_launcher">ПОКАЗАТЬ ЗНАЧОК</string>
+    <string name="action_add_tile">ДОБАВИТЬ ПЛИТКУ БЫСТРЫХ НАСТРОЕК</string>
+    <string name="tile_manual_hint">На Android 8–12 плитка добавляется вручную через редактирование быстрых настроек.</string>
+    <string name="hide_launcher_dialog_title">Скрыть значок приложения?</string>
+    <string name="hide_launcher_dialog_message">Значок NoBluetooth будет скрыт из списка приложений. Уже добавленный ярлык на главном экране может остаться — его можно удалить вручную. Сначала добавьте плитку NoBluetooth в быстрые настройки, чтобы через неё можно было снова открыть приложение.</string>
+    <string name="hide_launcher_confirm">СКРЫТЬ</string>
+    <string name="cancel">ОТМЕНА</string>
+    <string name="qs_tile_label">NoBluetooth</string>
+</resources>
