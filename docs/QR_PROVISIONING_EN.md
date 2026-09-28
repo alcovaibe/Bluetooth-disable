@@ -1,6 +1,6 @@
 # QR provisioning
 
-**Language:** [Русский](QR_PROVISIONING.md) | [English](QR_PROVISIONING_EN.md)
+**Language:** [Russian](QR_PROVISIONING.md) | [English](QR_PROVISIONING_EN.md)
 
 Bluetooth Disable is intended to be provisioned as a **fully managed Device Owner** after a factory reset.
 
