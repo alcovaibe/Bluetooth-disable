@@ -13,12 +13,14 @@ Working V1 foundation:
 - Kotlin + Jetpack Compose;
 - Device Owner / Device Policy Controller operation;
 - protection enabled through `UserManager.DISALLOW_BLUETOOTH`;
+- immediate local Bluetooth adapter shutdown request when protection is enabled;
 - protection disabled through `DevicePolicyManager.clearUserRestriction`;
 - the effective Android Device Policy state is the source of truth;
 - Android 12+ admin-integrated provisioning entry points;
 - QR provisioning template for fully managed enrollment;
 - no root, Shizuku, Magisk, Accessibility Service, or background service;
-- no `INTERNET` permission or Bluetooth runtime permissions;
+- no `INTERNET` permission;
+- on Android 12+, `BLUETOOTH_CONNECT` is used only to request immediate shutdown of the local adapter; the app does not request `BLUETOOTH_SCAN`, `BLUETOOTH_ADVERTISE`, or location access and does not enumerate bonded devices;
 - no analytics or telemetry.
 
 ## Modes
