@@ -1,5 +1,6 @@
 package com.pulse.bluetoothdisable.quicksettings
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
@@ -7,6 +8,7 @@ import android.service.quicksettings.TileService
 import com.pulse.bluetoothdisable.MainActivity
 
 class NoBluetoothTileService : TileService() {
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
 
@@ -24,7 +26,6 @@ class NoBluetoothTileService : TileService() {
                 )
                 startActivityAndCollapse(pendingIntent)
             } else {
-                @Suppress("DEPRECATION")
                 startActivityAndCollapse(launchIntent)
             }
         }
