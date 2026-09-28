@@ -99,16 +99,14 @@ fun MainScreen(
                 )
 
                 ProtectionState.NOT_PROVISIONED,
-                ProtectionState.ERROR,
-                -> ActionButton(
+                ProtectionState.ERROR -> ActionButton(
                     text = stringResource(R.string.action_refresh),
                     onClick = onRefresh,
                 )
 
                 ProtectionState.ENABLING,
                 ProtectionState.DISABLING,
-                ProtectionState.UNSUPPORTED,
-                -> Unit
+                ProtectionState.UNSUPPORTED -> Unit
             }
         }
     }
