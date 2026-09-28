@@ -31,6 +31,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.domain.ProtectionError
 import com.pulse.bluetoothdisable.domain.ProtectionState
@@ -62,7 +63,8 @@ fun MainScreen(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
-                    .padding(top = 8.dp, end = 12.dp),
+                    .padding(top = 8.dp, end = 12.dp)
+                    .zIndex(1f),
             )
 
             Column(
@@ -81,7 +83,7 @@ fun MainScreen(
                 Spacer(modifier = Modifier.height(32.dp))
 
                 val statusText = when (uiState.state) {
-                    ProtectionState.NOT_PROVISIONED -> R.string.status_not_provisioned
+                    ProtectionState.NOT_PROVISIONED -> null
                     ProtectionState.READY -> R.string.status_ready
                     ProtectionState.ENABLING -> R.string.status_enabling
                     ProtectionState.PROTECTED -> R.string.status_protected
@@ -89,13 +91,14 @@ fun MainScreen(
                     ProtectionState.ERROR -> R.string.status_error
                     ProtectionState.UNSUPPORTED -> R.string.status_unsupported
                 }
-                Text(
-                    text = stringResource(statusText),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
+                if (statusText != null) {
+                    Text(
+                        text = stringResource(statusText),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
 
                 val messageText = when (uiState.state) {
                     ProtectionState.NOT_PROVISIONED -> stringResource(R.string.message_not_provisioned)
@@ -151,18 +154,15 @@ fun MainScreen(
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(
-                        if (launcherIconHidden) {
-                            R.string.launcher_hidden
-                        } else {
-                            R.string.launcher_visible
-                        },
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+
+                if (launcherIconHidden) {
+                    Text(
+                        text = stringResource(R.string.launcher_hidden),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 if (canRequestTile) {
                     OutlinedButton(

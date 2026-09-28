@@ -4,7 +4,6 @@
     <string name="device_admin_description">Allows NoBluetooth to apply the Bluetooth restriction when this app is the device owner.</string>
 
     <string name="protection_title">Bluetooth protection</string>
-    <string name="status_not_provisioned">DEVICE OWNER REQUIRED</string>
     <string name="status_ready">OFF</string>
     <string name="status_enabling">ENABLING</string>
     <string name="status_protected">PROTECTED</string>
@@ -31,9 +30,8 @@
     <string name="action_refresh">REFRESH STATUS</string>
 
     <string name="launcher_section_title">App access</string>
-    <string name="launcher_visible">The app icon is visible in the app launcher.</string>
     <string name="launcher_hidden">The app icon is hidden. Use the Quick Settings tile to open NoBluetooth.</string>
-    <string name="action_hide_launcher">HIDE APP ICON</string>
+    <string name="action_hide_launcher">CHANGE ICON</string>
     <string name="action_show_launcher">SHOW APP ICON</string>
     <string name="action_add_tile">ADD QUICK SETTINGS TILE</string>
     <string name="tile_manual_hint">On Android 8–12, add the tile manually from Quick Settings edit mode.</string>
