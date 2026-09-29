@@ -14,6 +14,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -21,9 +24,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
+import com.pulse.bluetoothdisable.cover.CoverMode
+import com.pulse.bluetoothdisable.cover.CoverModeManager
+import com.pulse.bluetoothdisable.cover.CoverModeNavigator
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupActivity
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
@@ -44,6 +52,8 @@ class MainActivity : ComponentActivity() {
     private var quickSettingsTileAdded by mutableStateOf(false)
     private var selectedLanguage by mutableStateOf(LanguageManager.ENGLISH)
     private var selectedTheme by mutableStateOf<String?>(null)
+    private var openedFromCoverMode by mutableStateOf<CoverMode?>(null)
+    private var showCalculatorCoverConfirmation by mutableStateOf(false)
 
     private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == TileStateStore.KEY_TILE_ADDED) {
@@ -67,6 +77,7 @@ class MainActivity : ComponentActivity() {
         quickSettingsTileAdded = TileStateStore.isAdded(this)
         selectedLanguage = LanguageManager.getSelectedLanguage(this)
         selectedTheme = ThemeManager.getSelectedTheme(this)
+        openedFromCoverMode = CoverModeNavigator.coverOrigin(this, intent)
 
         setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -101,16 +112,58 @@ class MainActivity : ComponentActivity() {
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
                     selectedTheme = effectiveTheme,
+                    showHideAction = openedFromCoverMode != null,
+                    onHideToCover = ::hideToCover,
                     onLanguageSelected = ::changeLanguage,
                     onThemeSelected = ::changeTheme,
                     onEnableProtection = viewModel::enableProtection,
                     onDisableProtection = viewModel::disableProtection,
                     onRefresh = viewModel::refresh,
-                    onLauncherStyleSelected = ::changeLauncherStyle,
+                    onLauncherStyleSelected = ::handleLauncherStyleSelection,
                     onRequestAddTile = ::requestQuickSettingsTile,
                 )
+
+                if (showCalculatorCoverConfirmation) {
+                    AlertDialog(
+                        onDismissRequest = { showCalculatorCoverConfirmation = false },
+                        title = {
+                            Text(stringResource(R.string.calculator_cover_confirm_title))
+                        },
+                        text = {
+                            Text(stringResource(R.string.calculator_cover_confirm_message))
+                        },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+                                    showCalculatorCoverConfirmation = false
+                                    startActivity(
+                                        Intent(
+                                            this@MainActivity,
+                                            CalculatorCoverSetupActivity::class.java,
+                                        ),
+                                    )
+                                },
+                            ) {
+                                Text(stringResource(R.string.continue_action))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(
+                                onClick = { showCalculatorCoverConfirmation = false },
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        },
+                    )
+                }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openedFromCoverMode = CoverModeNavigator.coverOrigin(this, intent)
     }
 
     override fun onStart() {
@@ -160,13 +213,33 @@ class MainActivity : ComponentActivity() {
         selectedTheme = theme
     }
 
-    private fun changeLauncherStyle(style: LauncherStyle) {
-        if (!launcherIconHidden && selectedLauncherStyle == style) return
+    private fun handleLauncherStyleSelection(style: LauncherStyle) {
+        if (style == LauncherStyle.CALCULATOR) {
+            showCalculatorCoverConfirmation = true
+            return
+        }
+        changeLauncherStyle(style)
+    }
 
-        launcherIconController.setStyle(style)
+    private fun changeLauncherStyle(style: LauncherStyle) {
+        val coverModeManager = CoverModeManager(this)
+        if (!launcherIconHidden &&
+            selectedLauncherStyle == style &&
+            coverModeManager.activeMode() == CoverMode.DEFAULT
+        ) {
+            return
+        }
+
+        coverModeManager.deactivateToLauncher(style)
         selectedLauncherStyle = style
         launcherIconHidden = false
+        openedFromCoverMode = null
         relaunchAfterLauncherChange()
+    }
+
+    private fun hideToCover() {
+        val mode = openedFromCoverMode ?: return
+        CoverModeNavigator.hideToCoverMode(this, mode)
     }
 
     private fun relaunchAfterLauncherChange() {
@@ -174,7 +247,6 @@ class MainActivity : ComponentActivity() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         }
         startActivity(restartIntent)
-        finishAffinity()
     }
 
     private fun requestQuickSettingsTile() {
@@ -212,13 +284,15 @@ private fun MainScreenPreview() {
             uiState = ProtectionUiState(
                 state = ProtectionState.PROTECTED,
             ),
-            appVersion = "1.0.0",
+            appVersion = "1.0.6",
             launcherIconHidden = false,
             selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
             selectedTheme = ThemeManager.LIGHT,
+            showHideAction = false,
+            onHideToCover = {},
             onLanguageSelected = {},
             onThemeSelected = {},
             onEnableProtection = {},

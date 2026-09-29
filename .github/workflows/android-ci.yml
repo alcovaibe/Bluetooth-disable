@@ -36,4 +36,4 @@ jobs:
         run: chmod +x gradlew
 
       - name: Verify project
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest

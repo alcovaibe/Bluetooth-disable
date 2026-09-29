@@ -30,6 +30,7 @@
     <string name="action_enable">ВКЛЮЧИТЬ ЗАЩИТУ</string>
     <string name="action_disable">СНЯТЬ ЗАЩИТУ</string>
     <string name="action_refresh">ОБНОВИТЬ СОСТОЯНИЕ</string>
+    <string name="action_hide_to_cover">СКРЫТЬ</string>
 
     <string name="theme_light">СВЕТЛАЯ</string>
     <string name="theme_dark">ТЁМНАЯ</string>
@@ -43,6 +44,7 @@
     <string name="hide_launcher_dialog_message">Значок Bluetooth Disabler будет скрыт из списка приложений. Уже добавленный ярлык на главном экране может остаться — его можно удалить вручную. Сначала добавьте плитку Bluetooth Disabler в быстрые настройки, чтобы через неё можно было снова открыть приложение.</string>
     <string name="hide_launcher_confirm">СКРЫТЬ</string>
     <string name="cancel">ОТМЕНА</string>
+    <string name="continue_action">ПРОДОЛЖИТЬ</string>
     <string name="qs_tile_label">Bluetooth Disabler</string>
 
     <string name="change_launcher_icon_title">Изменить значок приложения</string>
@@ -51,4 +53,21 @@
     <string name="launcher_name_notes">Заметки</string>
     <string name="launcher_name_calendar">Календарь</string>
     <string name="launcher_name_gallery">Галерея</string>
+
+    <string name="calculator_cover_confirm_title">Режим Калькулятор</string>
+    <string name="calculator_cover_confirm_message">Приложение будет отображаться и запускаться как калькулятор. Для доступа к основному экрану потребуется пятизначный код, который вы зададите на следующем шаге.</string>
+    <string name="calculator_setup_title">Настройка калькулятора</string>
+    <string name="calculator_setup_description">Задайте пятизначный код. Введите его в калькуляторе и нажмите «=» для перехода к основному экрану приложения.</string>
+    <string name="calculator_access_code">Код доступа</string>
+    <string name="calculator_repeat_code">Повторите код</string>
+    <string name="calculator_code_length_error">Код должен содержать ровно 5 цифр.</string>
+    <string name="calculator_code_mismatch">Коды не совпадают.</string>
+    <string name="calculator_setup_completed">Настройка завершена</string>
+    <string name="calculator_setup_failed">Не удалось завершить настройку.</string>
+    <string name="calculator_error_divide_by_zero">Деление на ноль невозможно</string>
+    <string name="calculator_error_invalid_expression">Некорректное выражение</string>
+    <string name="calculator_history">История</string>
+    <string name="calculator_history_empty">Вычислений пока нет.</string>
+    <string name="calculator_clear_history">ОЧИСТИТЬ ИСТОРИЮ</string>
+    <string name="calculator_close">ЗАКРЫТЬ</string>
 </resources>

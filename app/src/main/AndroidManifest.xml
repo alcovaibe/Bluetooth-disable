@@ -5,11 +5,6 @@
         android:name="android.hardware.bluetooth"
         android:required="false" />
 
-    <!--
-        Bluetooth access is intentionally minimal. On Android 12+ only CONNECT is
-        declared so the Device Owner can request an immediate local adapter shutdown.
-        The app does not declare SCAN, ADVERTISE, or location permissions.
-    -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"
         android:maxSdkVersion="30" />
@@ -75,6 +70,22 @@
             android:theme="@style/Theme.BluetoothDisable"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".cover.calculator.CalculatorCoverActivity"
+            android:exported="false"
+            android:label="@string/launcher_name_calculator"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BluetoothDisable" />
+
+        <activity
+            android:name=".cover.calculator.CalculatorCoverSetupActivity"
+            android:exported="false"
+            android:label="@string/calculator_setup_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BluetoothDisable"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity-alias
             android:name=".LauncherAlias"
             android:enabled="true"
@@ -96,7 +107,7 @@
             android:icon="@drawable/calculator_icon"
             android:label="@string/launcher_name_calculator"
             android:roundIcon="@drawable/calculator_icon"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".cover.calculator.CalculatorCoverActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
