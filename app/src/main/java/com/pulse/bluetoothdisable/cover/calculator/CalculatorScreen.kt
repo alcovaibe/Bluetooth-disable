@@ -140,7 +140,6 @@ fun CalculatorScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
                 CalculatorKeypad(
-                    useComma = useComma,
                     onKey = { key ->
                         when (key) {
                             "C" -> viewModel.clear()
@@ -164,7 +163,6 @@ fun CalculatorScreen(
 
 @Composable
 private fun CalculatorKeypad(
-    useComma: Boolean,
     onKey: (String) -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
@@ -188,7 +186,7 @@ private fun CalculatorKeypad(
                     CalculatorThreeKeyRow(listOf("4", "5", "6"), keySize, keyGap, onKey)
                     CalculatorThreeKeyRow(listOf("1", "2", "3"), keySize, keyGap, onKey)
                     CalculatorThreeKeyRow(
-                        listOf("()", "0", if (useComma) "," else "."),
+                        listOf("()", "0", ","),
                         keySize,
                         keyGap,
                         onKey,
