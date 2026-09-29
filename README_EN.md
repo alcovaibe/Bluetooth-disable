@@ -100,6 +100,8 @@ Assigning Device Owner on a regular user device requires initial setup after a f
 
 Ready-to-use APKs are published in [Releases](../../releases).
 
+[Install via QR](#install-via-qr-code)
+
 For system-level Bluetooth blocking, the application must be configured once as the **device owner (Device Owner)**. This is done during the initial Android setup process.
 
 ### Before you begin
@@ -155,3 +157,9 @@ Support and behavior may vary depending on the device manufacturer and Android v
 - Android DevicePolicyManager;
 - Android Enterprise / Device Owner;
 - minSdk 26.
+
+## Install via QR code
+
+Scan this QR code during the initial Android setup to install Bluetooth Disable 1.0.6 as Device Owner.
+
+![QR code for installing Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.svg)
