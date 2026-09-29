@@ -28,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -60,6 +61,7 @@ fun MainScreen(
     modifier: Modifier = Modifier,
 ) {
     var showHideDialog by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
 
     Surface(modifier = modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -147,6 +149,22 @@ fun MainScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
                 )
+
+                if (uiState.state == ProtectionState.NOT_PROVISIONED) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            val url = if (selectedLanguage == LanguageManager.RUSSIAN) {
+                                "https://github.com/alcovaibe/Bluetooth-disabler#установка"
+                            } else {
+                                "https://github.com/alcovaibe/Bluetooth-disabler/blob/main/README_EN.md#installation"
+                            }
+                            uriHandler.openUri(url)
+                        },
+                    ) {
+                        Text(stringResource(R.string.provisioning_help))
+                    }
+                }
 
                 if (uiState.state == ProtectionState.ENABLING ||
                     uiState.state == ProtectionState.DISABLING
