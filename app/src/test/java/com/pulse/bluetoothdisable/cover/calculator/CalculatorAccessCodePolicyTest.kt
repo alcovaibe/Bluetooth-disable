@@ -23,6 +23,9 @@ class CalculatorAccessCodePolicyTest {
     @Test fun nonAsciiDigitsAreRejected() =
         assertFalse(CalculatorAccessCodePolicy.isValid("١٢٣٤٥"))
 
+    @Test fun allZeroCodeIsAllowed() =
+        assertTrue(CalculatorAccessCodePolicy.isValid("00000"))
+
     @Test fun leadingZeroIsPreservedAndAccepted() =
         assertTrue(CalculatorAccessCodePolicy.isValid("01234"))
 }
