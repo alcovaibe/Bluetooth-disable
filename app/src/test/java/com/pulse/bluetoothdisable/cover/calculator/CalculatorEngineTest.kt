@@ -13,6 +13,7 @@ class CalculatorEngineTest {
     @Test fun multiplication() = assertValue("8 × 4", "32")
     @Test fun division() = assertValue("20 ÷ 5", "4")
     @Test fun precedence() = assertValue("2 + 3 × 4", "14")
+    @Test fun subtractionPrecedence() = assertValue("10 - 2 × 3", "4")
     @Test fun parentheses() = assertValue("(2 + 3) × 4", "20")
     @Test fun unaryMinus() = assertValue("-5 + 7", "2")
     @Test fun unaryMinusAfterMultiply() = assertValue("2 × -3", "-6")
@@ -25,6 +26,7 @@ class CalculatorEngineTest {
     @Test fun standalonePercent() = assertValue("50%", "0.5")
     @Test fun addTwentyFivePercent() = assertValue("100 + 25%", "125")
     @Test fun subtractTwentyFivePercent() = assertValue("80 - 25%", "60")
+    @Test fun addFivePercent() = assertValue("1000 + 5%", "1050")
     @Test fun multiplyTwentyPercent() = assertValue("50 × 20%", "10")
     @Test fun divideTwentyPercent() = assertValue("10 ÷ 20%", "50")
 
