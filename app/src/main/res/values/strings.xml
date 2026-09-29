@@ -44,4 +44,11 @@
     <string name="hide_launcher_confirm">HIDE</string>
     <string name="cancel">CANCEL</string>
     <string name="qs_tile_label">Bluetooth Disabler</string>
+
+    <string name="change_launcher_icon_title">Change app icon</string>
+    <string name="launcher_option_default">Default</string>
+    <string name="launcher_name_calculator">Calculator</string>
+    <string name="launcher_name_notes">Notes</string>
+    <string name="launcher_name_calendar">Calendar</string>
+    <string name="launcher_name_gallery">Gallery</string>
 </resources>

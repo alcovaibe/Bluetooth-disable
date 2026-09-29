@@ -44,4 +44,11 @@
     <string name="hide_launcher_confirm">СКРЫТЬ</string>
     <string name="cancel">ОТМЕНА</string>
     <string name="qs_tile_label">Bluetooth Disabler</string>
+
+    <string name="change_launcher_icon_title">Изменить значок приложения</string>
+    <string name="launcher_option_default">По умолчанию</string>
+    <string name="launcher_name_calculator">Калькулятор</string>
+    <string name="launcher_name_notes">Заметки</string>
+    <string name="launcher_name_calendar">Календарь</string>
+    <string name="launcher_name_gallery">Галерея</string>
 </resources>
