@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable
 import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -22,6 +23,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
+import com.pulse.bluetoothdisable.quicksettings.TileStateStore
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.MainScreen
 import com.pulse.bluetoothdisable.ui.MainViewModel
@@ -31,8 +33,15 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: MainViewModel
     private lateinit var launcherIconController: LauncherIconController
     private var launcherIconHidden by mutableStateOf(false)
+    private var quickSettingsTileAdded by mutableStateOf(false)
     private var selectedLanguage by mutableStateOf(LanguageManager.ENGLISH)
     private var selectedTheme by mutableStateOf<String?>(null)
+
+    private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == TileStateStore.KEY_TILE_ADDED) {
+            quickSettingsTileAdded = TileStateStore.isAdded(this)
+        }
+    }
 
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LanguageManager.wrapContext(newBase))
@@ -46,6 +55,7 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
         launcherIconController = LauncherIconController(this)
         launcherIconHidden = launcherIconController.isHidden()
+        quickSettingsTileAdded = TileStateStore.isAdded(this)
         selectedLanguage = LanguageManager.getSelectedLanguage(this)
         selectedTheme = ThemeManager.getSelectedTheme(this)
 
@@ -77,6 +87,7 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     appVersion = BuildConfig.APP_VERSION,
                     launcherIconHidden = launcherIconHidden,
+                    tileAdded = quickSettingsTileAdded,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
                     selectedTheme = effectiveTheme,
@@ -99,6 +110,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        TileStateStore.preferences(this).registerOnSharedPreferenceChangeListener(tileStateListener)
+        quickSettingsTileAdded = TileStateStore.isAdded(this)
+    }
+
     override fun onResume() {
         super.onResume()
         if (::viewModel.isInitialized) {
@@ -107,6 +124,12 @@ class MainActivity : ComponentActivity() {
         if (::launcherIconController.isInitialized) {
             launcherIconHidden = launcherIconController.isHidden()
         }
+        quickSettingsTileAdded = TileStateStore.isAdded(this)
+    }
+
+    override fun onStop() {
+        TileStateStore.preferences(this).unregisterOnSharedPreferenceChangeListener(tileStateListener)
+        super.onStop()
     }
 
     @Suppress("DEPRECATION")
@@ -142,8 +165,17 @@ class MainActivity : ComponentActivity() {
             getString(R.string.qs_tile_label),
             Icon.createWithResource(this, R.drawable.ic_qs_nobluetooth),
             mainExecutor,
-        ) {
-            // Android owns the final tile placement decision. No app state is inferred here.
+        ) { result ->
+            // Android 13+ explicitly reports whether the tile was added or already present.
+            // Errors leave the last known state untouched; lifecycle callbacks remain authoritative.
+            when (result) {
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED,
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED,
+                -> TileStateStore.setAdded(this, true)
+
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
+                    TileStateStore.setAdded(this, false)
+            }
         }
     }
 }
