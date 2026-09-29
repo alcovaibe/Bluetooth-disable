@@ -44,6 +44,8 @@ android {
         versionCode = 5
         versionName = "1.0.4"
 
+        buildConfigField("String", "APP_VERSION", "\"$versionName\"")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -79,6 +81,7 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }

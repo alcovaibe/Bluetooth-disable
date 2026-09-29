@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
             BluetoothDisableTheme(darkTheme = darkTheme) {
                 MainScreen(
                     uiState = uiState,
+                    appVersion = BuildConfig.APP_VERSION,
                     launcherIconHidden = launcherIconHidden,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
