@@ -100,6 +100,8 @@ Bluetooth Disable разработан с принципом минимальн�
 
 Готовые APK публикуются в разделе [Releases](../../releases).
 
+[Установить по QR](#установка-по-qr-коду)
+
 Для системной блокировки Bluetooth приложение необходимо один раз настроить как **хозяина устройства (Device Owner)**. Это выполняется во время первоначальной настройки Android.
 
 ### Перед началом
@@ -155,3 +157,9 @@ Bluetooth Disable находится в активной разработке.
 - Android DevicePolicyManager;
 - Android Enterprise / Device Owner;
 - minSdk 26.
+
+## Установка по QR-коду
+
+Отсканируйте QR-код во время первоначальной настройки Android, чтобы установить Bluetooth Disable 1.0.6 в качестве Device Owner.
+
+![QR-код для установки Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.svg)
