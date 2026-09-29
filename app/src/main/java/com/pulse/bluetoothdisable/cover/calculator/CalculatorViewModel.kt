@@ -150,6 +150,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
             raw.all(Char::isDigit)
 
         if (accessCandidate && accessCodeManager.verify(raw)) {
+            clear()
             return true
         }
 
