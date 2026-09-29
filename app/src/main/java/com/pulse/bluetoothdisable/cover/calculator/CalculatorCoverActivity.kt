@@ -22,6 +22,8 @@ import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 class CalculatorCoverActivity : ComponentActivity() {
+    private lateinit var viewModel: CalculatorViewModel
+
     override fun attachBaseContext(newBase: Context) {
         super.attachBaseContext(LanguageManager.wrapContext(newBase))
     }
@@ -40,7 +42,7 @@ class CalculatorCoverActivity : ComponentActivity() {
 
         enableEdgeToEdge()
         configureNavigationBarSurface()
-        val viewModel = ViewModelProvider(this)[CalculatorViewModel::class.java]
+        viewModel = ViewModelProvider(this)[CalculatorViewModel::class.java]
 
         setContent {
             val systemDark = isSystemInDarkTheme()
@@ -66,6 +68,14 @@ class CalculatorCoverActivity : ComponentActivity() {
                     },
                 )
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (::viewModel.isInitialized) {
+            viewModel.clear()
         }
     }
 
