@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable.cover.calculator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulse.bluetoothdisable.R
@@ -68,7 +70,7 @@ fun CalculatorScreen(
                     .fillMaxSize()
                     .statusBarsPadding()
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 8.dp, vertical = 12.dp),
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -165,31 +167,56 @@ private fun CalculatorKeypad(
     useComma: Boolean,
     onKey: (String) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            CalculatorThreeKeyRow(listOf("C", "⌫", "%"), onKey)
-            CalculatorThreeKeyRow(listOf("7", "8", "9"), onKey)
-            CalculatorThreeKeyRow(listOf("4", "5", "6"), onKey)
-            CalculatorThreeKeyRow(listOf("1", "2", "3"), onKey)
-            CalculatorThreeKeyRow(listOf("()", "0", if (useComma) "," else "."), onKey)
-        }
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val keyGap = 8.dp
+        val railGap = 12.dp
+        val calculatedKeySize = (maxWidth - (keyGap * 2f) - railGap) / 4f
+        val keySize = calculatedKeySize.coerceIn(56.dp, 92.dp)
+        val keypadWidth = (keySize * 4f) + (keyGap * 2f) + railGap
 
-        CalculatorOperatorRail(onKey = onKey)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            Row(
+                modifier = Modifier.width(keypadWidth),
+                horizontalArrangement = Arrangement.spacedBy(railGap),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(keyGap)) {
+                    CalculatorThreeKeyRow(listOf("C", "⌫", "%"), keySize, keyGap, onKey)
+                    CalculatorThreeKeyRow(listOf("7", "8", "9"), keySize, keyGap, onKey)
+                    CalculatorThreeKeyRow(listOf("4", "5", "6"), keySize, keyGap, onKey)
+                    CalculatorThreeKeyRow(listOf("1", "2", "3"), keySize, keyGap, onKey)
+                    CalculatorThreeKeyRow(
+                        listOf("()", "0", if (useComma) "," else "."),
+                        keySize,
+                        keyGap,
+                        onKey,
+                    )
+                }
+
+                CalculatorOperatorRail(
+                    keySize = keySize,
+                    keyGap = keyGap,
+                    onKey = onKey,
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun CalculatorThreeKeyRow(
     keys: List<String>,
+    keySize: Dp,
+    keyGap: Dp,
     onKey: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(keyGap)) {
         keys.forEach { key ->
             CalculatorCircleKey(
                 key = key,
+                keySize = keySize,
                 onClick = { onKey(key) },
                 isClear = key == "C",
             )
@@ -200,6 +227,7 @@ private fun CalculatorThreeKeyRow(
 @Composable
 private fun CalculatorCircleKey(
     key: String,
+    keySize: Dp,
     onClick: () -> Unit,
     isClear: Boolean = false,
 ) {
@@ -217,34 +245,41 @@ private fun CalculatorCircleKey(
 
     Button(
         onClick = onClick,
-        modifier = Modifier.size(64.dp),
+        modifier = Modifier.size(keySize),
         shape = CircleShape,
         colors = colors,
         contentPadding = PaddingValues(0.dp),
     ) {
-        Text(text = key, fontSize = 22.sp)
+        Text(
+            text = key,
+            fontSize = if (keySize >= 80.dp) 26.sp else 22.sp,
+        )
     }
 }
 
 @Composable
 private fun CalculatorOperatorRail(
+    keySize: Dp,
+    keyGap: Dp,
     onKey: (String) -> Unit,
 ) {
+    val railHeight = (keySize * 5f) + (keyGap * 4f)
+
     Column(
         modifier = Modifier
-            .width(64.dp)
-            .height(352.dp)
+            .width(keySize)
+            .height(railHeight)
             .background(
                 color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(32.dp),
+                shape = RoundedCornerShape(keySize / 2f),
             ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(keyGap),
     ) {
         listOf("÷", "×", "−", "+", "=").forEach { key ->
             val isEquals = key == "="
             Button(
                 onClick = { onKey(key) },
-                modifier = Modifier.size(64.dp),
+                modifier = Modifier.size(keySize),
                 shape = CircleShape,
                 colors = if (isEquals) {
                     ButtonDefaults.buttonColors(
@@ -261,7 +296,7 @@ private fun CalculatorOperatorRail(
             ) {
                 Text(
                     text = key,
-                    fontSize = 24.sp,
+                    fontSize = if (keySize >= 80.dp) 28.sp else 24.sp,
                     fontWeight = if (isEquals) FontWeight.SemiBold else FontWeight.Normal,
                 )
             }
