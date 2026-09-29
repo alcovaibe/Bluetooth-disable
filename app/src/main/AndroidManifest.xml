@@ -74,6 +74,7 @@
             android:name=".cover.calculator.CalculatorCoverActivity"
             android:exported="false"
             android:label="@string/launcher_name_calculator"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BluetoothDisable" />
 
