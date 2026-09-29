@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <!-- Include user preferences (language, theme) during backup -->
-    <include domain="sharedpref" path="." />
+    <!--
+        Android 11 and lower: keep the app eligible for normal reinstall/restore
+        flows, but never back up its local state. The APK/package itself is handled
+        separately by the OS, app store, or migration tool.
+    -->
+    <exclude domain="root" path="." />
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
 </full-backup-content>
