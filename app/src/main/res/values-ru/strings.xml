@@ -34,7 +34,6 @@
     <string name="theme_light">СВЕТЛАЯ</string>
     <string name="theme_dark">ТЁМНАЯ</string>
 
-    <string name="launcher_section_title">Доступ к приложению</string>
     <string name="launcher_hidden">Значок приложения скрыт. Для входа используйте плитку быстрых настроек Bluetooth Disabler.</string>
     <string name="action_hide_launcher">ИЗМЕНИТЬ ЗНАЧОК</string>
     <string name="action_show_launcher">ПОКАЗАТЬ ЗНАЧОК</string>
