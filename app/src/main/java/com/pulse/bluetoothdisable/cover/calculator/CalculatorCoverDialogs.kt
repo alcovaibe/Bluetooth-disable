@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -155,7 +156,7 @@ private fun CalculatorCoverBottomSheet(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                     ) {},
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                shape = RoundedCornerShape(
                     topStart = 32.dp,
                     topEnd = 32.dp,
                 ),
@@ -226,6 +227,7 @@ private fun AccessCodeField(
         ),
         singleLine = true,
         isError = showLengthError || mismatch,
+        shape = RoundedCornerShape(20.dp),
         supportingText = {
             when {
                 mismatch -> Text(stringResource(R.string.calculator_code_mismatch))
