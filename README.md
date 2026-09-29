@@ -162,4 +162,4 @@ Bluetooth Disable находится в активной разработке.
 
 Отсканируйте QR-код во время первоначальной настройки Android, чтобы установить Bluetooth Disable 1.0.6 в качестве Device Owner.
 
-![QR-код для установки Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.svg)
+![QR-код для установки Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.png)
