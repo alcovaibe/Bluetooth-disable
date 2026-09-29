@@ -36,10 +36,10 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         val currentNumber = base.takeLastWhile { it.isDigit() || it == '.' }
         if (currentNumber.contains('.')) return
 
-        if (base.isEmpty() || isBinaryOperator(base.last()) || base.last() == '(') {
-            base += "0."
+        base += if (base.isEmpty() || isBinaryOperator(base.last()) || base.last() == '(') {
+            "0."
         } else if (base.last().isDigit()) {
-            base += "."
+            "."
         } else {
             return
         }
@@ -98,7 +98,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         if (expression.isNotEmpty() &&
             (expression.last().isDigit() || expression.last() == ')')
         ) {
-            updateExpression(expression + "%", clearPrevious = false)
+            updateExpression("$expression%", clearPrevious = false)
         }
     }
 
@@ -115,10 +115,10 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
         when {
             expression.isEmpty() || last == '(' || (last != null && isBinaryOperator(last)) ->
-                updateExpression(expression + "(", clearPrevious = false)
+                updateExpression("$expression(", clearPrevious = false)
             openCount > closeCount && last != null &&
                 (last.isDigit() || last == ')' || last == '%') ->
-                updateExpression(expression + ")", clearPrevious = false)
+                updateExpression("$expression)", clearPrevious = false)
         }
     }
 
