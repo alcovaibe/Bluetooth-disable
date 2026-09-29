@@ -10,13 +10,11 @@ import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
@@ -24,14 +22,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
-import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupActivity
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverConfirmationDialog
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupDialog
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
@@ -54,6 +52,7 @@ class MainActivity : ComponentActivity() {
     private var selectedTheme by mutableStateOf<String?>(null)
     private var openedFromCoverMode by mutableStateOf<CoverMode?>(null)
     private var showCalculatorCoverConfirmation by mutableStateOf(false)
+    private var showCalculatorCoverSetup by mutableStateOf(false)
 
     private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key == TileStateStore.KEY_TILE_ADDED) {
@@ -124,36 +123,19 @@ class MainActivity : ComponentActivity() {
                 )
 
                 if (showCalculatorCoverConfirmation) {
-                    AlertDialog(
-                        onDismissRequest = { showCalculatorCoverConfirmation = false },
-                        title = {
-                            Text(stringResource(R.string.calculator_cover_confirm_title))
+                    CalculatorCoverConfirmationDialog(
+                        onContinue = {
+                            showCalculatorCoverConfirmation = false
+                            showCalculatorCoverSetup = true
                         },
-                        text = {
-                            Text(stringResource(R.string.calculator_cover_confirm_message))
-                        },
-                        confirmButton = {
-                            TextButton(
-                                onClick = {
-                                    showCalculatorCoverConfirmation = false
-                                    startActivity(
-                                        Intent(
-                                            this@MainActivity,
-                                            CalculatorCoverSetupActivity::class.java,
-                                        ),
-                                    )
-                                },
-                            ) {
-                                Text(stringResource(R.string.continue_action))
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                onClick = { showCalculatorCoverConfirmation = false },
-                            ) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                        },
+                        onDismiss = { showCalculatorCoverConfirmation = false },
+                    )
+                }
+
+                if (showCalculatorCoverSetup) {
+                    CalculatorCoverSetupDialog(
+                        onComplete = ::completeCalculatorCoverSetup,
+                        onDismiss = { showCalculatorCoverSetup = false },
                     )
                 }
             }
@@ -215,10 +197,21 @@ class MainActivity : ComponentActivity() {
 
     private fun handleLauncherStyleSelection(style: LauncherStyle) {
         if (style == LauncherStyle.CALCULATOR) {
+            showCalculatorCoverSetup = false
             showCalculatorCoverConfirmation = true
             return
         }
         changeLauncherStyle(style)
+    }
+
+    private fun completeCalculatorCoverSetup(code: String): Boolean = try {
+        CoverModeManager(this).activateCalculator(code)
+        showCalculatorCoverSetup = false
+        Toast.makeText(this, R.string.calculator_setup_completed, Toast.LENGTH_SHORT).show()
+        CoverModeNavigator.hideToCoverMode(this, CoverMode.CALCULATOR)
+        true
+    } catch (_: Exception) {
+        false
     }
 
     private fun changeLauncherStyle(style: LauncherStyle) {

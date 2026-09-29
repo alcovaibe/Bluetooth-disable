@@ -13,21 +13,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulse.bluetoothdisable.R
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun CalculatorScreen(
@@ -45,121 +42,124 @@ fun CalculatorScreen(
 ) {
     val state = viewModel.uiState
     val useComma = Locale.getDefault().language == "ru"
-    var showHistory by remember { mutableStateOf(false) }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            CalculatorHistoryDrawer(
+                history = state.history,
+                useComma = useComma,
+                onClear = viewModel::clearHistory,
+            )
+        },
+    ) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                IconButton(onClick = { showHistory = true }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_history),
-                        contentDescription = stringResource(R.string.calculator_history),
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Start,
+                ) {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_history),
+                            contentDescription = stringResource(R.string.calculator_history),
+                        )
+                    }
                 }
-            }
 
-            Spacer(modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.weight(1f))
 
-            val previous = CalculatorFormatter.localize(state.previousExpression, useComma)
-            val display = CalculatorFormatter.localize(state.display, useComma)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Text(
-                    text = previous,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.End,
-            ) {
-                Text(
-                    text = display,
-                    fontSize = when {
-                        display.length > 34 -> 28.sp
-                        display.length > 20 -> 36.sp
-                        else -> 52.sp
-                    },
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                )
-            }
-
-            state.error?.let { error ->
-                Text(
-                    text = stringResource(
-                        when (error) {
-                            CalculatorEngineError.DIVISION_BY_ZERO ->
-                                R.string.calculator_error_divide_by_zero
-                            CalculatorEngineError.INVALID_EXPRESSION ->
-                                R.string.calculator_error_invalid_expression
-                        },
-                    ),
-                    color = MaterialTheme.colorScheme.error,
+                val previous = CalculatorFormatter.localize(state.previousExpression, useComma)
+                val display = CalculatorFormatter.localize(state.display, useComma)
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    textAlign = TextAlign.End,
-                )
-            }
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Text(
+                        text = previous,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    Text(
+                        text = display,
+                        fontSize = when {
+                            display.length > 34 -> 28.sp
+                            display.length > 20 -> 36.sp
+                            else -> 52.sp
+                        },
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                    )
+                }
 
-            Spacer(modifier = Modifier.height(24.dp))
-            CalculatorKeyRow(
-                keys = listOf("C", "⌫", "%", "÷"),
-                onKey = { key ->
+                state.error?.let { error ->
+                    Text(
+                        text = stringResource(
+                            when (error) {
+                                CalculatorEngineError.DIVISION_BY_ZERO ->
+                                    R.string.calculator_error_divide_by_zero
+                                CalculatorEngineError.INVALID_EXPRESSION ->
+                                    R.string.calculator_error_invalid_expression
+                            },
+                        ),
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        textAlign = TextAlign.End,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                CalculatorKeyRow(
+                    keys = listOf("C", "⌫", "%", "÷"),
+                    onKey = { key ->
+                        when (key) {
+                            "C" -> viewModel.clear()
+                            "⌫" -> viewModel.backspace()
+                            "%" -> viewModel.inputPercent()
+                            "÷" -> viewModel.inputOperator('÷')
+                        }
+                    },
+                )
+                CalculatorKeyRow(listOf("7", "8", "9", "×")) { key ->
+                    if (key == "×") viewModel.inputOperator('×') else viewModel.inputDigit(key[0])
+                }
+                CalculatorKeyRow(listOf("4", "5", "6", "−")) { key ->
+                    if (key == "−") viewModel.inputOperator('-') else viewModel.inputDigit(key[0])
+                }
+                CalculatorKeyRow(listOf("1", "2", "3", "+")) { key ->
+                    if (key == "+") viewModel.inputOperator('+') else viewModel.inputDigit(key[0])
+                }
+                CalculatorKeyRow(listOf("()", "0", if (useComma) "," else ".", "=")) { key ->
                     when (key) {
-                        "C" -> viewModel.clear()
-                        "⌫" -> viewModel.backspace()
-                        "%" -> viewModel.inputPercent()
-                        "÷" -> viewModel.inputOperator('÷')
+                        "()" -> viewModel.inputParenthesis()
+                        ",", "." -> viewModel.inputDecimal()
+                        "=" -> if (viewModel.equalsPressed()) onUnlock()
+                        else -> viewModel.inputDigit(key[0])
                     }
-                },
-            )
-            CalculatorKeyRow(listOf("7", "8", "9", "×")) { key ->
-                if (key == "×") viewModel.inputOperator('×') else viewModel.inputDigit(key[0])
-            }
-            CalculatorKeyRow(listOf("4", "5", "6", "−")) { key ->
-                if (key == "−") viewModel.inputOperator('-') else viewModel.inputDigit(key[0])
-            }
-            CalculatorKeyRow(listOf("1", "2", "3", "+")) { key ->
-                if (key == "+") viewModel.inputOperator('+') else viewModel.inputDigit(key[0])
-            }
-            CalculatorKeyRow(listOf("()", "0", if (useComma) "," else ".", "=")) { key ->
-                when (key) {
-                    "()" -> viewModel.inputParenthesis()
-                    ",", "." -> viewModel.inputDecimal()
-                    "=" -> if (viewModel.equalsPressed()) onUnlock()
-                    else -> viewModel.inputDigit(key[0])
                 }
             }
         }
-    }
-
-    if (showHistory) {
-        CalculatorHistoryDialog(
-            history = state.history,
-            useComma = useComma,
-            onClear = viewModel::clearHistory,
-            onDismiss = { showHistory = false },
-        )
     }
 }
 
@@ -186,50 +186,4 @@ private fun CalculatorKeyRow(
             }
         }
     }
-}
-
-@Composable
-private fun CalculatorHistoryDialog(
-    history: List<CalculatorHistoryEntry>,
-    useComma: Boolean,
-    onClear: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.calculator_history)) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                if (history.isEmpty()) {
-                    Text(stringResource(R.string.calculator_history_empty))
-                } else {
-                    history.forEach { entry ->
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                CalculatorFormatter.localize(entry.expression, useComma),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Text(
-                                CalculatorFormatter.localize(entry.result, useComma),
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onClear, enabled = history.isNotEmpty()) {
-                Text(stringResource(R.string.calculator_clear_history))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.calculator_close))
-            }
-        },
-    )
 }

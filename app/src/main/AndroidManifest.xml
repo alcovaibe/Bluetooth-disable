@@ -78,14 +78,6 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BluetoothDisable" />
 
-        <activity
-            android:name=".cover.calculator.CalculatorCoverSetupActivity"
-            android:exported="false"
-            android:label="@string/calculator_setup_title"
-            android:screenOrientation="portrait"
-            android:theme="@style/Theme.BluetoothDisable"
-            android:windowSoftInputMode="adjustResize" />
-
         <activity-alias
             android:name=".LauncherAlias"
             android:enabled="true"
