@@ -52,6 +52,8 @@ fun MainScreen(
     canRequestTile: Boolean,
     selectedLanguage: String,
     selectedTheme: String,
+    showHideAction: Boolean,
+    onHideToCover: () -> Unit,
     onLanguageSelected: (String) -> Unit,
     onThemeSelected: (String) -> Unit,
     onEnableProtection: () -> Unit,
@@ -196,6 +198,19 @@ fun MainScreen(
                     ProtectionState.ENABLING,
                     ProtectionState.DISABLING,
                     ProtectionState.UNSUPPORTED -> Unit
+                }
+
+                if (showHideAction) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = onHideToCover,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            text = stringResource(R.string.action_hide_to_cover),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(40.dp))
@@ -370,13 +385,15 @@ private fun MainScreenPreview() {
     BluetoothDisableTheme {
         MainScreen(
             uiState = ProtectionUiState(state = ProtectionState.READY),
-            appVersion = "1.0.5",
+            appVersion = "1.0.6",
             launcherIconHidden = false,
             selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
             selectedTheme = ThemeManager.LIGHT,
+            showHideAction = true,
+            onHideToCover = {},
             onLanguageSelected = {},
             onThemeSelected = {},
             onEnableProtection = {},
