@@ -44,6 +44,7 @@ import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 @Composable
 fun MainScreen(
     uiState: ProtectionUiState,
+    appVersion: String,
     launcherIconHidden: Boolean,
     canRequestTile: Boolean,
     selectedLanguage: String,
@@ -79,6 +80,17 @@ fun MainScreen(
                     .align(Alignment.TopEnd)
                     .statusBarsPadding()
                     .padding(top = 8.dp, end = 12.dp)
+                    .zIndex(1f),
+            )
+
+            Text(
+                text = "v $appVersion",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .navigationBarsPadding()
+                    .padding(start = 12.dp, bottom = 8.dp)
                     .zIndex(1f),
             )
 
@@ -383,6 +395,7 @@ private fun MainScreenPreview() {
     BluetoothDisableTheme {
         MainScreen(
             uiState = ProtectionUiState(state = ProtectionState.READY),
+            appVersion = "1.0.4",
             launcherIconHidden = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
