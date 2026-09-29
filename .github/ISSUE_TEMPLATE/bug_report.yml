@@ -1,0 +1,119 @@
+name: "Bug report / Сообщить об ошибке"
+description: "Report a problem with Bluetooth Disabler / Сообщите о проблеме в Bluetooth Disabler"
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug. Please provide as much information as possible.
+
+        Спасибо за сообщение об ошибке. Пожалуйста, укажите как можно больше информации.
+
+        **Do not include passwords, signing keys, personal data, or other secrets.**
+        **Не публикуйте пароли, ключи подписи, личные данные и другие секреты.**
+
+  - type: input
+    id: app_version
+    attributes:
+      label: "App version / Версия приложения"
+      description: "Example / Пример: 1.0.5"
+      placeholder: "1.0.5"
+    validations:
+      required: true
+
+  - type: input
+    id: manufacturer
+    attributes:
+      label: "Device manufacturer / Производитель устройства"
+      description: "Example / Пример: Samsung, Xiaomi, Google"
+      placeholder: "Samsung"
+    validations:
+      required: true
+
+  - type: input
+    id: device_model
+    attributes:
+      label: "Device model / Модель устройства"
+      description: "Example / Пример: Galaxy S25"
+      placeholder: "Galaxy S25"
+    validations:
+      required: true
+
+  - type: input
+    id: android_version
+    attributes:
+      label: "Android version / Версия Android"
+      description: "Example / Пример: Android 16"
+      placeholder: "Android 16"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_owner
+    attributes:
+      label: "Is Bluetooth Disabler configured as Device Owner? / Bluetooth Disabler назначен владельцем устройства?"
+      options:
+        - "Yes / Да"
+        - "No / Нет"
+        - "I don't know / Не знаю"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: "What happened? / Что произошло?"
+      description: "Describe the problem and any error messages. / Опишите проблему и сообщения об ошибках."
+      placeholder: "Describe what happened / Опишите, что произошло"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior / Ожидаемое поведение"
+      description: "What did you expect to happen? / Что должно было произойти?"
+      placeholder: "Describe the expected result / Опишите ожидаемый результат"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce / Шаги для воспроизведения"
+      description: "List the exact actions that cause the problem. / Перечислите действия, после которых возникает проблема."
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: "How often does it happen? / Как часто это происходит?"
+      options:
+        - "Every time / Каждый раз"
+        - "Sometimes / Иногда"
+        - "Only once / Только один раз"
+        - "I don't know / Не знаю"
+    validations:
+      required: true
+
+  - type: textarea
+    id: attachments
+    attributes:
+      label: "Screenshots, video, or logs / Скриншоты, видео или логи"
+      description: "Drag files here if they help demonstrate the problem. Remove personal or sensitive information first. / Прикрепите файлы, если они помогают показать проблему. Сначала удалите личные и конфиденциальные данные."
+      placeholder: "Optional / Необязательно"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: "Confirmation / Подтверждение"
+      options:
+        - label: "I have not included passwords, signing keys, personal data, or other secrets. / Я не публикую пароли, ключи подписи, личные данные или другие секреты."
+          required: true
