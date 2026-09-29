@@ -216,4 +216,4 @@ private fun AccessCodeField(
 }
 
 private fun sanitizeCode(value: String): String =
-    value.filter(Char::isDigit).take(CalculatorAccessCodePolicy.CODE_LENGTH)
+    value.filter { it in '0'..'9' }.take(CalculatorAccessCodePolicy.CODE_LENGTH)
