@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +37,7 @@ import androidx.compose.ui.zIndex
 import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.domain.ProtectionError
 import com.pulse.bluetoothdisable.domain.ProtectionState
+import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
@@ -47,6 +47,7 @@ fun MainScreen(
     uiState: ProtectionUiState,
     appVersion: String,
     launcherIconHidden: Boolean,
+    selectedLauncherStyle: LauncherStyle,
     tileAdded: Boolean,
     canRequestTile: Boolean,
     selectedLanguage: String,
@@ -56,12 +57,11 @@ fun MainScreen(
     onEnableProtection: () -> Unit,
     onDisableProtection: () -> Unit,
     onRefresh: () -> Unit,
-    onHideLauncherIcon: () -> Unit,
-    onShowLauncherIcon: () -> Unit,
+    onLauncherStyleSelected: (LauncherStyle) -> Unit,
     onRequestAddTile: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showHideDialog by remember { mutableStateOf(false) }
+    var showIconDialog by remember { mutableStateOf(false) }
     val uriHandler = LocalUriHandler.current
 
     Surface(modifier = modifier.fillMaxSize()) {
@@ -210,8 +210,6 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Only offer tile setup while the tile is not known to be present.
-                // onTileAdded/onTileRemoved keep this state in sync with SystemUI.
                 if (!tileAdded) {
                     if (canRequestTile) {
                         OutlinedButton(
@@ -235,23 +233,11 @@ fun MainScreen(
                 }
 
                 OutlinedButton(
-                    onClick = {
-                        if (launcherIconHidden) {
-                            onShowLauncherIcon()
-                        } else {
-                            showHideDialog = true
-                        }
-                    },
+                    onClick = { showIconDialog = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = stringResource(
-                            if (launcherIconHidden) {
-                                R.string.action_show_launcher
-                            } else {
-                                R.string.action_hide_launcher
-                            },
-                        ),
+                        text = stringResource(R.string.action_hide_launcher),
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -259,38 +245,14 @@ fun MainScreen(
         }
     }
 
-    if (showHideDialog) {
-        AlertDialog(
-            onDismissRequest = { showHideDialog = false },
-            title = {
-                Text(
-                    text = stringResource(R.string.hide_launcher_dialog_title),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+    if (showIconDialog) {
+        LauncherIconSelectionDialog(
+            selectedStyle = selectedLauncherStyle,
+            onStyleSelected = { style ->
+                showIconDialog = false
+                onLauncherStyleSelected(style)
             },
-            text = {
-                Text(
-                    text = stringResource(R.string.hide_launcher_dialog_message),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showHideDialog = false
-                        onHideLauncherIcon()
-                    },
-                ) {
-                    Text(stringResource(R.string.hide_launcher_confirm))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showHideDialog = false }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
+            onDismiss = { showIconDialog = false },
         )
     }
 }
@@ -410,6 +372,7 @@ private fun MainScreenPreview() {
             uiState = ProtectionUiState(state = ProtectionState.READY),
             appVersion = "1.0.5",
             launcherIconHidden = false,
+            selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
@@ -419,8 +382,7 @@ private fun MainScreenPreview() {
             onEnableProtection = {},
             onDisableProtection = {},
             onRefresh = {},
-            onHideLauncherIcon = {},
-            onShowLauncherIcon = {},
+            onLauncherStyleSelected = {},
             onRequestAddTile = {},
         )
     }
