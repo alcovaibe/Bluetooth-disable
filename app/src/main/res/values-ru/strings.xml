@@ -19,6 +19,8 @@
     <string name="message_error">Не удалось подтвердить состояние системной политики.</string>
     <string name="message_unsupported">Bluetooth-модуль не обнаружен на этом устройстве.</string>
 
+    <string name="provisioning_help">Узнать, как это сделать</string>
+
     <string name="error_read_policy">Не удалось прочитать системную политику Bluetooth.</string>
     <string name="error_enable_not_confirmed">Android не подтвердил включение системной блокировки Bluetooth.</string>
     <string name="error_enable_failed">Не удалось включить системную блокировку Bluetooth.</string>
