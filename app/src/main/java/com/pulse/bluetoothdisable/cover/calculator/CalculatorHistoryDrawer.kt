@@ -4,22 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
@@ -27,13 +22,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulse.bluetoothdisable.R
+
+private const val HISTORY_SINGLE_LINE_CHARACTER_LIMIT = 24
 
 @Composable
 fun CalculatorHistoryDrawer(
@@ -49,21 +46,14 @@ fun CalculatorHistoryDrawer(
         drawerContainerColor = MaterialTheme.colorScheme.surface,
         windowInsets = androidx.compose.foundation.layout.WindowInsets(0),
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .statusBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            contentAlignment = Alignment.CenterStart,
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_history),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.size(40.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = stringResource(R.string.calculator_history),
                 fontSize = 28.sp,
@@ -129,24 +119,25 @@ private fun CalculatorHistoryRow(
     entry: CalculatorHistoryEntry,
     useComma: Boolean,
 ) {
-    Column(
+    val expression = CalculatorFormatter.localize(entry.expression, useComma)
+    val result = CalculatorFormatter.localize(entry.result, useComma)
+    val historyLine = "$expression = $result"
+
+    // 290 dp drawer - 32 dp list padding - 16 dp row padding = 242 dp of text width.
+    // At bodyLarge's 16 sp monospace size this fits about 25 glyphs, so 24 leaves
+    // a small safety margin for font scaling and rendering differences.
+    val maxLines = if (historyLine.length <= HISTORY_SINGLE_LINE_CHARACTER_LIMIT) 1 else 2
+
+    Text(
+        text = historyLine,
+        style = MaterialTheme.typography.bodyLarge,
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = maxLines,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 10.dp),
-    ) {
-        Text(
-            text = CalculatorFormatter.localize(entry.expression, useComma),
-            style = MaterialTheme.typography.bodyLarge,
-            fontFamily = FontFamily.Monospace,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "= ${CalculatorFormatter.localize(entry.result, useComma)}",
-            style = MaterialTheme.typography.titleMedium,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
+    )
 }
