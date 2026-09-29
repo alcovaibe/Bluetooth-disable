@@ -19,6 +19,8 @@
     <string name="message_error">The system policy state could not be confirmed.</string>
     <string name="message_unsupported">No Bluetooth adapter was detected on this device.</string>
 
+    <string name="provisioning_help">Learn how to set it up</string>
+
     <string name="error_read_policy">The Android Bluetooth policy could not be read.</string>
     <string name="error_enable_not_confirmed">Android did not confirm that Bluetooth protection was enabled.</string>
     <string name="error_enable_failed">Bluetooth protection could not be enabled.</string>
