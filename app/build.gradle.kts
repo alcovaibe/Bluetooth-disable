@@ -91,7 +91,7 @@ androidComponents {
         variant.outputs.forEach { output ->
             output.outputFileName.set(
                 output.versionName.map { version ->
-                    "release-$version.apk"
+                    "BluetoothDisable-v$version.apk"
                 },
             )
         }
