@@ -170,8 +170,8 @@ class MainActivity : ComponentActivity() {
             // Errors leave the last known state untouched; lifecycle callbacks remain authoritative.
             when (result) {
                 StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED,
-                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED,
-                -> TileStateStore.setAdded(this, true)
+                StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
+                    TileStateStore.setAdded(this, true)
 
                 StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_NOT_ADDED ->
                     TileStateStore.setAdded(this, false)
