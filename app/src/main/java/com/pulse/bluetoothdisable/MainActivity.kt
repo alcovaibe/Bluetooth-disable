@@ -4,6 +4,7 @@ import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -12,14 +13,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
+import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
@@ -27,6 +31,7 @@ import com.pulse.bluetoothdisable.quicksettings.TileStateStore
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.MainScreen
 import com.pulse.bluetoothdisable.ui.MainViewModel
+import com.pulse.bluetoothdisable.ui.ProtectionUiState
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 class MainActivity : ComponentActivity() {
@@ -177,5 +182,36 @@ class MainActivity : ComponentActivity() {
                     TileStateStore.setAdded(this, false)
             }
         }
+    }
+}
+
+@Preview(showBackground = true, name = "Light Mode")
+@Preview(
+    showBackground = true,
+    name = "Dark Mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun MainScreenPreview() {
+    BluetoothDisableTheme {
+        MainScreen(
+            uiState = ProtectionUiState(
+                state = ProtectionState.PROTECTED,
+            ),
+            appVersion = "1.0.0",
+            launcherIconHidden = false,
+            tileAdded = false,
+            canRequestTile = true,
+            selectedLanguage = LanguageManager.ENGLISH,
+            selectedTheme = ThemeManager.LIGHT,
+            onLanguageSelected = {},
+            onThemeSelected = {},
+            onEnableProtection = {},
+            onDisableProtection = {},
+            onRefresh = {},
+            onHideLauncherIcon = {},
+            onShowLauncherIcon = {},
+            onRequestAddTile = {},
+        )
     }
 }
