@@ -146,8 +146,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun equalsPressed(): Boolean {
         val raw = uiState.expression
-        val accessCandidate = raw.length == CalculatorAccessCodePolicy.CODE_LENGTH &&
-            raw.all(Char::isDigit)
+        val accessCandidate = CalculatorAccessCodePolicy.isValid(raw)
 
         if (accessCandidate && accessCodeManager.verify(raw)) {
             clear()
