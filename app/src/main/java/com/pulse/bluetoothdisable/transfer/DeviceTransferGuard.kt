@@ -14,6 +14,7 @@ import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.SecretKey
+import androidx.core.content.edit
 
 /**
  * Last-resort protection against OEM migration tools that copy app-private data
@@ -102,9 +103,9 @@ object DeviceTransferGuard {
 
         // Remove the identifier-derived value left by the previous implementation.
         if (preferences.contains(LEGACY_KEY_DEVICE_ID_HASH)) {
-            preferences.edit()
-                .remove(LEGACY_KEY_DEVICE_ID_HASH)
-                .apply()
+            preferences.edit {
+                remove(LEGACY_KEY_DEVICE_ID_HASH)
+            }
         }
     }
 
@@ -114,11 +115,11 @@ object DeviceTransferGuard {
         val markerMac = signMarker(key, marker)
 
         context.getSharedPreferences(IDENTITY_PREFERENCES, Context.MODE_PRIVATE)
-            .edit()
-            .remove(LEGACY_KEY_DEVICE_ID_HASH)
-            .putString(KEY_MARKER, encode(marker))
-            .putString(KEY_MARKER_MAC, encode(markerMac))
-            .commit()
+            .edit(commit = true) {
+                remove(LEGACY_KEY_DEVICE_ID_HASH)
+                    .putString(KEY_MARKER, encode(marker))
+                    .putString(KEY_MARKER_MAC, encode(markerMac))
+            }
     }
 
     private fun resetAndInitialize(context: Context, keyStore: KeyStore) {
@@ -205,9 +206,9 @@ object DeviceTransferGuard {
 
         preferenceNames.forEach { preferenceName ->
             context.getSharedPreferences(preferenceName, Context.MODE_PRIVATE)
-                .edit()
-                .clear()
-                .commit()
+                .edit(commit = true) {
+                    clear()
+                }
         }
     }
 
