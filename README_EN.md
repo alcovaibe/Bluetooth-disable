@@ -162,4 +162,4 @@ Support and behavior may vary depending on the device manufacturer and Android v
 
 Scan this QR code during the initial Android setup to install Bluetooth Disable 1.0.6 as Device Owner.
 
-![QR code for installing Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.svg)
+![QR code for installing Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.png)
