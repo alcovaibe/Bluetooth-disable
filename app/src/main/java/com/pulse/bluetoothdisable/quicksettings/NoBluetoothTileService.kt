@@ -8,6 +8,23 @@ import android.service.quicksettings.TileService
 import com.pulse.bluetoothdisable.MainActivity
 
 class NoBluetoothTileService : TileService() {
+    override fun onTileAdded() {
+        super.onTileAdded()
+        TileStateStore.setAdded(this, true)
+    }
+
+    override fun onStartListening() {
+        super.onStartListening()
+        // Also heals stale state after app updates or process recreation when the tile
+        // already existed before TileStateStore was introduced.
+        TileStateStore.setAdded(this, true)
+    }
+
+    override fun onTileRemoved() {
+        TileStateStore.setAdded(this, false)
+        super.onTileRemoved()
+    }
+
     @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()

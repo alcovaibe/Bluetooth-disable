@@ -47,6 +47,7 @@ fun MainScreen(
     uiState: ProtectionUiState,
     appVersion: String,
     launcherIconHidden: Boolean,
+    tileAdded: Boolean,
     canRequestTile: Boolean,
     selectedLanguage: String,
     selectedTheme: String,
@@ -199,15 +200,6 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(40.dp))
 
-                Text(
-                    text = stringResource(R.string.launcher_section_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
                 if (launcherIconHidden) {
                     Text(
                         text = stringResource(R.string.launcher_hidden),
@@ -218,24 +210,27 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                if (canRequestTile) {
-                    OutlinedButton(
-                        onClick = onRequestAddTile,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
+                // Only offer tile setup while the tile is not known to be present.
+                // onTileAdded/onTileRemoved keep this state in sync with SystemUI.
+                if (!tileAdded) {
+                    if (canRequestTile) {
+                        OutlinedButton(
+                            onClick = onRequestAddTile,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(
+                                text = stringResource(R.string.action_add_tile),
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    } else {
                         Text(
-                            text = stringResource(R.string.action_add_tile),
+                            text = stringResource(R.string.tile_manual_hint),
+                            style = MaterialTheme.typography.bodySmall,
                             textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                } else {
-                    Text(
-                        text = stringResource(R.string.tile_manual_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
@@ -413,8 +408,9 @@ private fun MainScreenPreview() {
     BluetoothDisableTheme {
         MainScreen(
             uiState = ProtectionUiState(state = ProtectionState.READY),
-            appVersion = "1.0.4",
+            appVersion = "1.0.5",
             launcherIconHidden = false,
+            tileAdded = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
             selectedTheme = ThemeManager.LIGHT,
