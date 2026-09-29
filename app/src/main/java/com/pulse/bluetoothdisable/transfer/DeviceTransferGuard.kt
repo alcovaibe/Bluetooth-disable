@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.content.edit
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import java.io.File
 import java.io.IOException
@@ -14,7 +15,6 @@ import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import javax.crypto.Mac
 import javax.crypto.SecretKey
-import androidx.core.content.edit
 
 /**
  * Last-resort protection against OEM migration tools that copy app-private data
@@ -40,6 +40,7 @@ object DeviceTransferGuard {
         "theme_preferences",
         "language_preferences",
         "quick_settings_tile_state",
+        LauncherIconController.PREFERENCES_NAME,
     )
 
     fun enforce(context: Context) {
