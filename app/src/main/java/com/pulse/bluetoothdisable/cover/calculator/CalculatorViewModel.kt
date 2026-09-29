@@ -67,18 +67,23 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
                 if (operator == '-') updateExpression(expression + operator, clearPrevious = false)
             }
             isBinaryOperator(last) -> {
-                if (operator == '-' && last != '-') {
-                    updateExpression(expression + operator, clearPrevious = false)
-                } else if (
-                    last == '-' && expression.length >= 2 &&
-                    isBinaryOperator(expression[expression.lastIndex - 1])
-                ) {
-                    updateExpression(
-                        expression.dropLast(2) + operator,
-                        clearPrevious = false,
-                    )
-                } else {
-                    updateExpression(expression.dropLast(1) + operator, clearPrevious = false)
+                val previous = expression.getOrNull(expression.lastIndex - 1)
+                val lastMinusIsUnary = last == '-' &&
+                    (previous == null || previous == '(' || isBinaryOperator(previous))
+
+                when {
+                    lastMinusIsUnary && previous != null && isBinaryOperator(previous) &&
+                        operator != '-' -> {
+                        updateExpression(
+                            expression.dropLast(2) + operator,
+                            clearPrevious = false,
+                        )
+                    }
+                    lastMinusIsUnary -> Unit
+                    operator == '-' ->
+                        updateExpression(expression + operator, clearPrevious = false)
+                    else ->
+                        updateExpression(expression.dropLast(1) + operator, clearPrevious = false)
                 }
             }
             last == '.' -> updateExpression(expression + "0" + operator, clearPrevious = false)
