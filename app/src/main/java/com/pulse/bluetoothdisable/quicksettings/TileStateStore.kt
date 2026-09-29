@@ -2,6 +2,7 @@ package com.pulse.bluetoothdisable.quicksettings
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 /**
  * Persists the last system-confirmed Quick Settings tile state.
@@ -28,8 +29,8 @@ object TileStateStore {
         val preferences = preferences(context)
         if (preferences.getBoolean(KEY_TILE_ADDED, false) == added) return
 
-        preferences.edit()
-            .putBoolean(KEY_TILE_ADDED, added)
-            .apply()
+        preferences.edit {
+            putBoolean(KEY_TILE_ADDED, added)
+        }
     }
 }

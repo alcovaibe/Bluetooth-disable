@@ -1,6 +1,7 @@
 package com.pulse.bluetoothdisable.theme
 
 import android.content.Context
+import androidx.core.content.edit
 
 object ThemeManager {
     const val LIGHT = "light"
@@ -20,9 +21,8 @@ object ThemeManager {
 
     fun setSelectedTheme(context: Context, theme: String) {
         require(theme == LIGHT || theme == DARK)
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_THEME, theme)
-            .apply()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString(KEY_THEME, theme)
+        }
     }
 }

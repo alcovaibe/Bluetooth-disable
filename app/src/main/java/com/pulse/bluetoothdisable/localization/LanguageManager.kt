@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable.localization
 import android.content.Context
 import android.content.res.Configuration
 import android.os.LocaleList
+import androidx.core.content.edit
 import java.util.Locale
 
 object LanguageManager {
@@ -23,10 +24,9 @@ object LanguageManager {
 
     fun setSelectedLanguage(context: Context, language: String) {
         require(language == ENGLISH || language == RUSSIAN)
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(KEY_LANGUAGE, language)
-            .apply()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString(KEY_LANGUAGE, language)
+        }
     }
 
     fun wrapContext(context: Context): Context {

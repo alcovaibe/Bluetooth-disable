@@ -25,7 +25,6 @@ class NoBluetoothTileService : TileService() {
         super.onTileRemoved()
     }
 
-    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
 
@@ -43,6 +42,8 @@ class NoBluetoothTileService : TileService() {
                 )
                 startActivityAndCollapse(pendingIntent)
             } else {
+                @Suppress("DEPRECATION")
+                @SuppressLint("StartActivityAndCollapseDeprecated")
                 startActivityAndCollapse(launchIntent)
             }
         }
