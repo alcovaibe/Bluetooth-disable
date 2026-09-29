@@ -34,7 +34,6 @@
     <string name="theme_light">LIGHT</string>
     <string name="theme_dark">DARK</string>
 
-    <string name="launcher_section_title">App access</string>
     <string name="launcher_hidden">The app icon is hidden. Use the Quick Settings tile to open Bluetooth Disabler.</string>
     <string name="action_hide_launcher">CHANGE ICON</string>
     <string name="action_show_launcher">SHOW APP ICON</string>
