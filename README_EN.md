@@ -14,12 +14,51 @@ Unlike simply turning Bluetooth off, protection mode uses Android Device Policy 
 - simple manual `OFF / PROTECTED` mode;
 - quick access through the Android Quick Settings tile;
 - ability to hide the app from the app list;
+- ability to change the launcher icon and application name;
+- calculator cover mode with a functional calculator interface;
+- access to the main Bluetooth Disable interface through a five-digit code;
+- ability to quickly return from the main interface to cover mode;
 - Russian and English interface;
 - works without root;
 - works without Shizuku, Magisk, or Accessibility Service;
 - no background service;
 - no analytics or telemetry;
 - no Internet access.
+
+## App cover modes
+
+Bluetooth Disable supports changing its launcher icon and application name.
+
+The following variants are available:
+
+- Default;
+- Calculator;
+- Notes;
+- Calendar;
+- Gallery.
+
+### Calculator mode
+
+The Calculator variant provides a functional cover mode.
+
+When enabled, the application appears and launches as a regular calculator. During initial setup, the user creates a custom five-digit access code.
+
+The calculator supports:
+
+- addition, subtraction, multiplication, and division;
+- percentages;
+- parentheses;
+- negative and decimal numbers;
+- calculation history;
+- light and dark themes.
+
+To open the main Bluetooth Disable interface, enter the configured five-digit code in the calculator and press `=`.
+
+After entering Bluetooth Disable, a **“HIDE”** button is available to return directly to the calculator interface.
+
+The access code is stored locally only. The code itself is not stored in plaintext: verification uses HMAC-SHA256 with a key stored in Android Keystore.
+
+The Notes, Calendar, and Gallery variants currently change the launcher icon and application name. Full cover interfaces for these variants are planned for future versions.
 
 ## How protection works
 
