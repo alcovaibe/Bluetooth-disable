@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable
 import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.Color
@@ -25,6 +26,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
+import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
 import com.pulse.bluetoothdisable.quicksettings.TileStateStore
@@ -38,6 +40,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: MainViewModel
     private lateinit var launcherIconController: LauncherIconController
     private var launcherIconHidden by mutableStateOf(false)
+    private var selectedLauncherStyle by mutableStateOf(LauncherStyle.DEFAULT)
     private var quickSettingsTileAdded by mutableStateOf(false)
     private var selectedLanguage by mutableStateOf(LanguageManager.ENGLISH)
     private var selectedTheme by mutableStateOf<String?>(null)
@@ -60,6 +63,7 @@ class MainActivity : ComponentActivity() {
         viewModel = ViewModelProvider(this)[MainViewModel::class.java]
         launcherIconController = LauncherIconController(this)
         launcherIconHidden = launcherIconController.isHidden()
+        selectedLauncherStyle = launcherIconController.selectedStyle()
         quickSettingsTileAdded = TileStateStore.isAdded(this)
         selectedLanguage = LanguageManager.getSelectedLanguage(this)
         selectedTheme = ThemeManager.getSelectedTheme(this)
@@ -92,6 +96,7 @@ class MainActivity : ComponentActivity() {
                     uiState = uiState,
                     appVersion = BuildConfig.APP_VERSION,
                     launcherIconHidden = launcherIconHidden,
+                    selectedLauncherStyle = selectedLauncherStyle,
                     tileAdded = quickSettingsTileAdded,
                     canRequestTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
                     selectedLanguage = selectedLanguage,
@@ -101,14 +106,7 @@ class MainActivity : ComponentActivity() {
                     onEnableProtection = viewModel::enableProtection,
                     onDisableProtection = viewModel::disableProtection,
                     onRefresh = viewModel::refresh,
-                    onHideLauncherIcon = {
-                        launcherIconController.hide()
-                        launcherIconHidden = launcherIconController.isHidden()
-                    },
-                    onShowLauncherIcon = {
-                        launcherIconController.show()
-                        launcherIconHidden = launcherIconController.isHidden()
-                    },
+                    onLauncherStyleSelected = ::changeLauncherStyle,
                     onRequestAddTile = ::requestQuickSettingsTile,
                 )
             }
@@ -128,6 +126,7 @@ class MainActivity : ComponentActivity() {
         }
         if (::launcherIconController.isInitialized) {
             launcherIconHidden = launcherIconController.isHidden()
+            selectedLauncherStyle = launcherIconController.selectedStyle()
         }
         quickSettingsTileAdded = TileStateStore.isAdded(this)
     }
@@ -161,6 +160,23 @@ class MainActivity : ComponentActivity() {
         selectedTheme = theme
     }
 
+    private fun changeLauncherStyle(style: LauncherStyle) {
+        if (!launcherIconHidden && selectedLauncherStyle == style) return
+
+        launcherIconController.setStyle(style)
+        selectedLauncherStyle = style
+        launcherIconHidden = false
+        relaunchAfterLauncherChange()
+    }
+
+    private fun relaunchAfterLauncherChange() {
+        val restartIntent = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        }
+        startActivity(restartIntent)
+        finishAffinity()
+    }
+
     private fun requestQuickSettingsTile() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
 
@@ -171,8 +187,6 @@ class MainActivity : ComponentActivity() {
             Icon.createWithResource(this, R.drawable.ic_qs_nobluetooth),
             mainExecutor,
         ) { result ->
-            // Android 13+ explicitly reports whether the tile was added or already present.
-            // Errors leave the last known state untouched; lifecycle callbacks remain authoritative.
             when (result) {
                 StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED,
                 StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED ->
@@ -200,6 +214,7 @@ private fun MainScreenPreview() {
             ),
             appVersion = "1.0.0",
             launcherIconHidden = false,
+            selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,
             canRequestTile = true,
             selectedLanguage = LanguageManager.ENGLISH,
@@ -209,8 +224,7 @@ private fun MainScreenPreview() {
             onEnableProtection = {},
             onDisableProtection = {},
             onRefresh = {},
-            onHideLauncherIcon = {},
-            onShowLauncherIcon = {},
+            onLauncherStyleSelected = {},
             onRequestAddTile = {},
         )
     }
