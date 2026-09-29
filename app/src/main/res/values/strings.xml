@@ -30,6 +30,7 @@
     <string name="action_enable">ENABLE PROTECTION</string>
     <string name="action_disable">DISABLE PROTECTION</string>
     <string name="action_refresh">REFRESH STATUS</string>
+    <string name="action_hide_to_cover">HIDE</string>
 
     <string name="theme_light">LIGHT</string>
     <string name="theme_dark">DARK</string>
@@ -43,6 +44,7 @@
     <string name="hide_launcher_dialog_message">The Bluetooth Disabler icon will be hidden from the app launcher. A shortcut already placed on the home screen may remain and can be removed manually. Add the Bluetooth Disabler Quick Settings tile first so you can reopen the app.</string>
     <string name="hide_launcher_confirm">HIDE</string>
     <string name="cancel">CANCEL</string>
+    <string name="continue_action">CONTINUE</string>
     <string name="qs_tile_label">Bluetooth Disabler</string>
 
     <string name="change_launcher_icon_title">Change app icon</string>
@@ -51,4 +53,21 @@
     <string name="launcher_name_notes">Notes</string>
     <string name="launcher_name_calendar">Calendar</string>
     <string name="launcher_name_gallery">Gallery</string>
+
+    <string name="calculator_cover_confirm_title">Calculator mode</string>
+    <string name="calculator_cover_confirm_message">The app will appear and launch as a calculator. Access to the main screen will require the five-digit code you set on the next step.</string>
+    <string name="calculator_setup_title">Calculator setup</string>
+    <string name="calculator_setup_description">Set a five-digit code. Enter it in the calculator and press “=” to open the main app screen.</string>
+    <string name="calculator_access_code">Access code</string>
+    <string name="calculator_repeat_code">Repeat code</string>
+    <string name="calculator_code_length_error">The code must contain exactly 5 digits.</string>
+    <string name="calculator_code_mismatch">The codes do not match.</string>
+    <string name="calculator_setup_completed">Setup completed</string>
+    <string name="calculator_setup_failed">Unable to complete setup.</string>
+    <string name="calculator_error_divide_by_zero">Cannot divide by zero</string>
+    <string name="calculator_error_invalid_expression">Invalid expression</string>
+    <string name="calculator_history">History</string>
+    <string name="calculator_history_empty">No calculations yet.</string>
+    <string name="calculator_clear_history">CLEAR HISTORY</string>
+    <string name="calculator_close">CLOSE</string>
 </resources>
