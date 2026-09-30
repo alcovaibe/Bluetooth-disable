@@ -4,6 +4,8 @@ import android.widget.ImageView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -73,6 +75,7 @@ fun LauncherIconSelectionDialog(
             ) {
                 Column(
                     modifier = Modifier
+                        .verticalScroll(rememberScrollState())
                         .navigationBarsPadding()
                         .padding(24.dp)
                         .fillMaxWidth(),
@@ -98,10 +101,22 @@ fun LauncherIconSelectionDialog(
                         onClick = { onStyleSelected(LauncherStyle.CALCULATOR) },
                     )
                     LauncherOptionCard(
+                        style = LauncherStyle.NOTES,
+                        selected = selectedStyle == LauncherStyle.NOTES,
+                        label = stringResource(R.string.launcher_name_notes),
+                        onClick = { onStyleSelected(LauncherStyle.NOTES) },
+                    )
+                    LauncherOptionCard(
                         style = LauncherStyle.CALENDAR,
                         selected = selectedStyle == LauncherStyle.CALENDAR,
                         label = stringResource(R.string.launcher_name_calendar),
                         onClick = { onStyleSelected(LauncherStyle.CALENDAR) },
+                    )
+                    LauncherOptionCard(
+                        style = LauncherStyle.GALLERY,
+                        selected = selectedStyle == LauncherStyle.GALLERY,
+                        label = stringResource(R.string.launcher_name_gallery),
+                        onClick = { onStyleSelected(LauncherStyle.GALLERY) },
                     )
 
                     Row(
