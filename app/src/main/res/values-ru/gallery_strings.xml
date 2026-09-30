@@ -19,6 +19,7 @@
     <string name="gallery_favorite">Избранное</string>
     <string name="gallery_edit">Изменить</string>
     <string name="gallery_info">Информация</string>
+    <string name="gallery_color_space">Цветовое пространство: %1$s</string>
     <string name="gallery_delete">Удалить</string>
     <string name="gallery_delete_title">Удалить фотографию?</string>
     <string name="gallery_delete_message">Будет удалена только внутренняя копия из Галереи. Оригинал, выбранный через системный Photo Picker, не изменится.</string>
