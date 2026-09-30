@@ -78,6 +78,21 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.BluetoothDisable" />
 
+        <activity
+            android:name=".cover.calendar.CalendarCoverActivity"
+            android:exported="false"
+            android:label="@string/launcher_name_calendar"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.BluetoothDisable"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".cover.calendar.CalendarCoverSetupActivity"
+            android:exported="false"
+            android:label="@string/calendar_setup_title"
+            android:theme="@style/Theme.BluetoothDisable"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity-alias
             android:name=".LauncherAlias"
             android:enabled="true"
@@ -127,7 +142,7 @@
             android:icon="@drawable/calendar_icon"
             android:label="@string/launcher_name_calendar"
             android:roundIcon="@drawable/calendar_icon"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".cover.calendar.CalendarCoverActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

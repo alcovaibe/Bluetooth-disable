@@ -24,8 +24,8 @@ class CalculatorAccessCodeManager(context: Context) {
         val signature = sign(getOrCreateKey(), code)
         val encoded = Base64.encodeToString(signature, Base64.NO_WRAP)
 
-        preferences.edit(commit = true) {
-            putString(KEY_CODE_MAC, encoded)
+        check(preferences.edit().putString(KEY_CODE_MAC, encoded).commit()) {
+            "Unable to persist calculator verifier"
         }
     }
 

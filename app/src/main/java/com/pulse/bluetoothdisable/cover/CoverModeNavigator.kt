@@ -5,13 +5,14 @@ import android.content.Context
 import android.content.Intent
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverActivity
+import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverActivity
 
 object CoverModeNavigator {
     private const val EXTRA_COVER_ORIGIN =
         "com.pulse.bluetoothdisable.extra.INTERNAL_COVER_ORIGIN"
 
     fun openMainFromCover(activity: Activity, mode: CoverMode) {
-        require(mode == CoverMode.CALCULATOR)
+        require(coverActivityClass(mode) != null)
         if (CoverModeManager(activity).activeMode() != mode) return
 
         activity.startActivity(
@@ -25,7 +26,7 @@ object CoverModeNavigator {
     fun coverOrigin(context: Context, intent: Intent?): CoverMode? {
         val raw = intent?.getStringExtra(EXTRA_COVER_ORIGIN) ?: return null
         val mode = CoverMode.entries.firstOrNull { it.name == raw } ?: return null
-        if (mode != CoverMode.CALCULATOR) return null
+        if (coverActivityClass(mode) == null) return null
         return mode.takeIf { CoverModeManager(context).activeMode() == it }
     }
 
@@ -38,10 +39,12 @@ object CoverModeNavigator {
         )
     }
 
+    fun openCover(activity: Activity, mode: CoverMode) = hideToCoverMode(activity, mode)
+
     private fun coverActivityClass(mode: CoverMode): Class<out Activity>? = when (mode) {
         CoverMode.CALCULATOR -> CalculatorCoverActivity::class.java
+        CoverMode.CALENDAR -> CalendarCoverActivity::class.java
         CoverMode.DEFAULT,
-        CoverMode.CALENDAR,
         CoverMode.NOTES,
         CoverMode.GALLERY -> null
     }

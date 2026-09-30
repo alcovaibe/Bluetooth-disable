@@ -163,3 +163,13 @@ Support and behavior may vary depending on the device manufacturer and Android v
 Scan this QR code during the initial Android setup to install Bluetooth Disable 1.0.6 as Device Owner.
 
 ![QR code for installing Bluetooth Disable 1.0.6](docs/bluetooth-disable-1.0.6-device-owner-qr.png)
+
+### Calendar cover
+
+Choose Change icon → Calendar, set a date and a note text, then confirm setup.
+The app will launch as a local calendar. To enter the main screen, create and save
+an exact matching note on the chosen date, then tap it. Matching is case-sensitive;
+leading/trailing whitespace is ignored. Hide returns to today and removes the main
+screen from the back stack. Notes are stored locally in encrypted form.
+
+[Calendar Cover Mode architecture and verification](docs/CALENDAR_COVER_MODE.md).

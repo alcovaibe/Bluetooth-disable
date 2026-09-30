@@ -1,0 +1,189 @@
+package com.pulse.bluetoothdisable.cover.calendar
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.pulse.bluetoothdisable.R
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.format.TextStyle
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarScreen(viewModel: CalendarViewModel, onUnlock: () -> Unit) {
+    val state = viewModel.uiState
+    val locale = LocalConfiguration.current.locales[0]
+    var choosingDate by remember { mutableStateOf(false) }
+    var deleting by remember { mutableStateOf<CalendarNote?>(null) }
+    val previousDescription = stringResource(R.string.calendar_previous_month)
+    val nextDescription = stringResource(R.string.calendar_next_month)
+    val addDescription = stringResource(R.string.calendar_add_note)
+    val chooseDescription = stringResource(R.string.calendar_choose_date)
+    val today = LocalDate.now()
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.launcher_name_calendar)) },
+                actions = {
+                    TextButton(onClick = viewModel::today) { Text(stringResource(R.string.calendar_today)) }
+                },
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = viewModel::add,
+                modifier = Modifier.semantics { contentDescription = addDescription },
+            ) { Text("+", style = MaterialTheme.typography.headlineMedium) }
+        },
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 96.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            item {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = { viewModel.moveMonth(-1) },
+                        enabled = !(state.month.year == CalendarDates.YEAR_RANGE.first && state.month.monthValue == 1),
+                        modifier = Modifier.semantics { contentDescription = previousDescription },
+                    ) { Text("‹", style = MaterialTheme.typography.headlineMedium) }
+                    TextButton(
+                        onClick = { choosingDate = true },
+                        modifier = Modifier.weight(1f).semantics { contentDescription = chooseDescription },
+                    ) { Text(CalendarDates.formatMonth(state.month, locale), style = MaterialTheme.typography.titleLarge) }
+                    IconButton(
+                        onClick = { viewModel.moveMonth(1) },
+                        enabled = !(state.month.year == CalendarDates.YEAR_RANGE.last && state.month.monthValue == 12),
+                        modifier = Modifier.semantics { contentDescription = nextDescription },
+                    ) { Text("›", style = MaterialTheme.typography.headlineMedium) }
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    DayOfWeek.entries.forEach { day ->
+                        Box(Modifier.weight(1f).height(40.dp), contentAlignment = Alignment.Center) {
+                            Text(day.getDisplayName(TextStyle.SHORT, locale), style = MaterialTheme.typography.labelMedium)
+                        }
+                    }
+                }
+            }
+            items(CalendarDates.monthCells(state.month).chunked(7)) { week ->
+                Row(Modifier.fillMaxWidth()) {
+                    week.forEach { date ->
+                        Box(Modifier.weight(1f).height(48.dp), contentAlignment = Alignment.Center) {
+                            if (date != null) {
+                                val selected = date == state.selectedDate
+                                Surface(
+                                    onClick = { viewModel.select(date) },
+                                    shape = CircleShape,
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                    border = if (date == today) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
+                                    modifier = Modifier.size(44.dp).testTag("calendar_day_$date")
+                                        .semantics { contentDescription = CalendarDates.formatDate(date, locale) },
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) { Text(date.dayOfMonth.toString()) }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                HorizontalDivider(Modifier.padding(vertical = 12.dp))
+                Text(CalendarDates.formatDate(state.selectedDate, locale), style = MaterialTheme.typography.titleLarge)
+            }
+            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+            if (state.storageError) item {
+                Text(stringResource(R.string.calendar_storage_error), color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.calendar_retry)) }
+            }
+            val notes = state.notes.filter { it.date == state.selectedDate }
+            if (!state.loading && !state.storageError && notes.isEmpty()) item {
+                Text(stringResource(R.string.calendar_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            items(notes, key = { it.id }) { note ->
+                OutlinedCard(onClick = { viewModel.click(note, onUnlock) }, enabled = !state.busy) {
+                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
+                        // Identical presentation for every note, regardless of the access rule.
+                        Text(note.text, style = MaterialTheme.typography.bodyLarge)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { viewModel.edit(note) }, enabled = !state.busy, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.calendar_edit_note))
+                            }
+                            TextButton(onClick = { deleting = note }, enabled = !state.busy, modifier = Modifier.weight(1f)) {
+                                Text(stringResource(R.string.calendar_delete))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (choosingDate) CalendarDateDialog(state.selectedDate,
+        onSelect = { viewModel.select(it); choosingDate = false },
+        onDismiss = { choosingDate = false },
+    )
+    if (state.editorOpen) {
+        key(state.editingNote?.id) {
+            CalendarNoteDialog(state.editingNote, state.busy, state.storageError,
+                onSave = viewModel::save, onDismiss = viewModel::closeEditor)
+        }
+    }
+    deleting?.let { note ->
+        AlertDialog(
+            onDismissRequest = { deleting = null },
+            title = { Text(stringResource(R.string.calendar_delete_note)) },
+            text = { Text(stringResource(R.string.calendar_delete_confirmation)) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.delete(note); deleting = null }) {
+                    Text(stringResource(R.string.calendar_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun CalendarNoteDialog(
+    note: CalendarNote?, busy: Boolean, failed: Boolean,
+    onSave: (String) -> Unit, onDismiss: () -> Unit,
+) {
+    var text by remember { mutableStateOf(note?.text.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(stringResource(if (note == null) R.string.calendar_add_note else R.string.calendar_edit_note)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = text, onValueChange = { text = it }, enabled = !busy,
+                    label = { Text(stringResource(R.string.calendar_note)) },
+                    modifier = Modifier.fillMaxWidth().testTag("calendar_note_text"),
+                    minLines = 3, maxLines = 6,
+                )
+                if (failed) Text(stringResource(R.string.calendar_storage_error), color = MaterialTheme.colorScheme.error)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onSave(text) }, enabled = text.isNotBlank() && !busy) {
+                Text(stringResource(R.string.calendar_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}

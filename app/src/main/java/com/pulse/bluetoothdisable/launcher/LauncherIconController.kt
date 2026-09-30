@@ -35,9 +35,9 @@ class LauncherIconController(context: Context) {
     }
 
     fun setStyle(style: LauncherStyle) {
-        preferences.edit(commit = true) {
-            putString(KEY_SELECTED_STYLE, style.preferenceValue)
-        }
+        check(preferences.edit()
+            .putString(KEY_SELECTED_STYLE, style.preferenceValue)
+            .commit()) { "Unable to persist launcher style" }
         activate(style)
     }
 

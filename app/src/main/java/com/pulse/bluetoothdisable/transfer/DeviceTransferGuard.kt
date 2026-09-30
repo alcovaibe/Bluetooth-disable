@@ -5,6 +5,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.core.content.edit
+import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
+import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
 import com.pulse.bluetoothdisable.cover.CoverModeStore
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodeManager
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorHistoryStore
@@ -46,6 +48,7 @@ object DeviceTransferGuard {
         LauncherIconController.PREFERENCES_NAME,
         CoverModeStore.PREFERENCES_NAME,
         CalculatorAccessCodeManager.PREFERENCES_NAME,
+        CalendarAccessManager.PREFERENCES_NAME,
         CalculatorHistoryStore.PREFERENCES_NAME,
     )
 
@@ -177,6 +180,8 @@ object DeviceTransferGuard {
     private fun clearMigratedLocalState(context: Context) {
         // Delete the Calculator Cover verifier and its device-local Keystore key explicitly.
         CalculatorAccessCodeManager(context).clearCode()
+        CalendarAccessManager(context).clear()
+        LocalCalendarNotesRepository(context).clear()
         clearAllSharedPreferences(context)
 
         context.databaseList().forEach { databaseName ->
