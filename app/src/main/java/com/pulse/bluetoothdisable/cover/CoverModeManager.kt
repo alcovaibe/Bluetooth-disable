@@ -2,11 +2,11 @@ package com.pulse.bluetoothdisable.cover
 
 import android.content.Context
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodeManager
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodePolicy
 import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
 import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessPolicy
 import com.pulse.bluetoothdisable.cover.calendar.CalendarDates
 import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
-import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodePolicy
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import java.time.LocalDate
@@ -55,6 +55,16 @@ class CoverModeManager(context: Context) {
                 "Unable to restore default launcher"
             }
         }, cleanup = calculatorAccess::deleteKey) { calculatorAccess.clearVerifier() }
+    }
+
+    /** Disable Calendar disguise while retaining notes and calculator history. */
+    fun resetCalendarCover() {
+        check(activeMode() == CoverMode.CALENDAR)
+        transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
+            check(launcher.isExclusivelyEnabled(LauncherStyle.DEFAULT)) {
+                "Unable to restore default launcher"
+            }
+        }, cleanup = calendarAccess::deleteKey) { calendarAccess.clearVerifier() }
     }
 
     /** The durable journal contains only ISO dates and opaque verifiers, never input secrets.

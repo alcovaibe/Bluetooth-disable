@@ -8,8 +8,6 @@ import android.content.pm.PackageManager
 import android.os.SystemClock
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
-import com.pulse.bluetoothdisable.R
-import org.junit.Rule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -18,6 +16,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.pulse.bluetoothdisable.MainActivity
+import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverActivity
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverActivity
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
@@ -29,6 +28,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -127,7 +127,7 @@ class CoverModeNavigationInstrumentedTest {
         }
         ActivityScenario.launch<CalculatorCoverActivity>(coverIntent).use { scenario ->
             scenario.onActivity { activity ->
-                val recovery = com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverRecoveryManager(
+                val recovery = com.pulse.bluetoothdisable.cover.CoverRecoveryManager(
                     manager::activeMode, manager::resetCalculatorCover,
                 )
                 recovery.authenticationSucceeded(recovery.begin()!!)
@@ -142,6 +142,35 @@ class CoverModeNavigationInstrumentedTest {
             Espresso.pressBackUnconditionally()
             waitForIdle()
             assertFalse(resumedActivities().any { it is CalculatorCoverActivity })
+        }
+    }
+
+    @Test
+    fun calendarEmergencyResetStartsDefaultMainAndBackCannotReturnToCalendar() {
+        manager.activateCalendar(java.time.LocalDate.of(2024, 2, 29), "Calendar access")
+        val notes = com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository(context)
+        val note = notes.save(java.time.LocalDate.of(2024, 2, 29), "Regular calendar note")
+        val coverIntent = Intent(context, CalendarCoverActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        ActivityScenario.launch<CalendarCoverActivity>(coverIntent).use { scenario ->
+            scenario.onActivity { activity ->
+                val recovery = com.pulse.bluetoothdisable.cover.CoverRecoveryManager(
+                    manager::activeMode, manager::resetCalendarCover, modeToRecover = CoverMode.CALENDAR,
+                )
+                recovery.authenticationSucceeded(recovery.begin()!!)
+                assertTrue(recovery.confirmReset())
+                CoverModeNavigator.openDefaultMain(activity)
+            }
+            val main = awaitResumedActivity(MainActivity::class.java)
+            assertNull(CoverModeNavigator.coverOrigin(main, main.intent))
+            compose.onNodeWithText(main.getString(R.string.action_hide_to_cover)).assertDoesNotExist()
+            assertTrue(LauncherIconController(context).isExclusivelyEnabled(LauncherStyle.DEFAULT))
+            assertEquals(note, notes.notes().single())
+            assertFalse(resumedActivities().any { it is CalendarCoverActivity })
+            Espresso.pressBackUnconditionally()
+            waitForIdle()
+            assertFalse(resumedActivities().any { it is CalendarCoverActivity })
         }
     }
 

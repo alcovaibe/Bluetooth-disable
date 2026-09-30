@@ -1,14 +1,22 @@
-package com.pulse.bluetoothdisable.cover.calculator
+package com.pulse.bluetoothdisable.cover.calendar
 
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
 import org.junit.Assert.*
 import org.junit.Test
 
-class CalculatorCoverRecoveryManagerTest {
-    private var mode = CoverMode.CALCULATOR
+class CalendarCoverRecoveryManagerTest {
+    private var mode = CoverMode.CALENDAR
     private var resets = 0
-    private fun manager() = CoverRecoveryManager({ mode }, { resets++; mode = CoverMode.DEFAULT })
+    private fun manager() = CoverRecoveryManager({ mode }, { resets++; mode = CoverMode.DEFAULT }, modeToRecover = CoverMode.CALENDAR)
+
+    @Test fun unsupportedRecoveryTargetsAreRejected() {
+        for (mode in listOf(CoverMode.DEFAULT, CoverMode.NOTES, CoverMode.GALLERY)) {
+            assertThrows(IllegalArgumentException::class.java) {
+                CoverRecoveryManager({ mode }, {}, modeToRecover = mode)
+            }
+        }
+    }
 
     @Test fun cancelledOrFailedAuthenticationCannotReset() {
         for (cancelled in listOf(true, false)) {
@@ -18,7 +26,7 @@ class CalculatorCoverRecoveryManagerTest {
             recovery.authenticationSucceeded(id) // A late success must be ignored.
             assertFalse(recovery.confirmReset())
             assertEquals(0, resets)
-            assertEquals(CoverMode.CALCULATOR, mode)
+            assertEquals(CoverMode.CALENDAR, mode)
         }
     }
 
@@ -50,13 +58,13 @@ class CalculatorCoverRecoveryManagerTest {
 
     @Test fun otherModesAndModeChangedDuringAuthenticationAreRejected() {
         val recovery = manager()
-        for (other in CoverMode.entries.filterNot { it == CoverMode.CALCULATOR }) {
+        for (other in CoverMode.entries.filterNot { it == CoverMode.CALENDAR }) {
             mode = other
             assertNull(recovery.begin())
         }
-        mode = CoverMode.CALCULATOR
-        val id = recovery.begin()!!
         mode = CoverMode.CALENDAR
+        val id = recovery.begin()!!
+        mode = CoverMode.CALCULATOR
         recovery.authenticationSucceeded(id)
         assertFalse(recovery.confirmReset())
         assertEquals(0, resets)
@@ -76,10 +84,10 @@ class CalculatorCoverRecoveryManagerTest {
     @Test fun modeChangedAfterAuthenticationCannotBeReset() {
         val recovery = manager()
         recovery.authenticationSucceeded(recovery.begin()!!)
-        mode = CoverMode.CALENDAR
+        mode = CoverMode.CALCULATOR
         assertFalse(recovery.confirmReset())
         assertEquals(0, resets)
-        assertEquals(CoverMode.CALENDAR, mode)
+        assertEquals(CoverMode.CALCULATOR, mode)
     }
 
     @Test fun recreatedManagerRequiresFreshAuthentication() {
@@ -91,14 +99,14 @@ class CalculatorCoverRecoveryManagerTest {
     }
 
     @Test fun resetFailureReturnsToIdleForRetry() {
-        val recovery = CoverRecoveryManager({ mode }, { error("failure") })
+        val recovery = CoverRecoveryManager({ mode }, { error("failure") }, modeToRecover = CoverMode.CALENDAR)
         recovery.authenticationSucceeded(recovery.begin()!!)
         try {
             recovery.confirmReset()
             fail("Expected reset failure")
         } catch (_: IllegalStateException) { }
         assertEquals(CoverRecoveryManager.State.IDLE, recovery.state)
-        assertEquals(CoverMode.CALCULATOR, mode)
+        assertEquals(CoverMode.CALENDAR, mode)
         assertNotNull(recovery.begin())
     }
 }

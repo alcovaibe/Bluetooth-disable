@@ -16,13 +16,19 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.pulse.bluetoothdisable.R
+import com.pulse.bluetoothdisable.cover.coverRecoveryHold
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarScreen(viewModel: CalendarViewModel, onUnlock: () -> Unit) {
+fun CalendarScreen(
+    viewModel: CalendarViewModel,
+    recoveryEnabled: Boolean = false,
+    onRecoveryHold: () -> Unit = {},
+    onUnlock: () -> Unit,
+) {
     val state = viewModel.uiState
     val locale = LocalConfiguration.current.locales[0]
     var choosingDate by remember { mutableStateOf(false) }
@@ -35,9 +41,16 @@ fun CalendarScreen(viewModel: CalendarViewModel, onUnlock: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.launcher_name_calendar)) },
+                modifier = Modifier.testTag("calendar_toolbar"),
+                title = {
+                    Text(stringResource(R.string.launcher_name_calendar),
+                        modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold))
+                },
                 actions = {
-                    TextButton(onClick = viewModel::today) { Text(stringResource(R.string.calendar_today)) }
+                    TextButton(onClick = viewModel::today) {
+                        Text(stringResource(R.string.calendar_today),
+                            modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold))
+                    }
                 },
             )
         },

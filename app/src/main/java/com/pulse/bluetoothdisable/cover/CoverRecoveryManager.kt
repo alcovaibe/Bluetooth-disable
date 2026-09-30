@@ -1,22 +1,23 @@
-package com.pulse.bluetoothdisable.cover.calculator
-
-import com.pulse.bluetoothdisable.cover.CoverMode
+package com.pulse.bluetoothdisable.cover
 
 /** No UI or authentication implementation here: only a gated, one-at-a-time flow.
  * Authentication permits are in memory and never survive Activity/process recreation.
  */
-class CalculatorCoverRecoveryManager(
+class CoverRecoveryManager(
     private val activeMode: () -> CoverMode,
-    private val resetCalculator: () -> Unit,
+    private val resetCover: () -> Unit,
     private val onStateChanged: (State) -> Unit = {},
+    private val modeToRecover: CoverMode = CoverMode.CALCULATOR,
 ) {
+    init { require(modeToRecover in setOf(CoverMode.CALCULATOR, CoverMode.CALENDAR)) }
+
     enum class State { IDLE, AUTHENTICATING, CONFIRMING, RESETTING }
     var state = State.IDLE
         private set
     private var attempt = 0L
 
     fun begin(): Long? {
-        if (state != State.IDLE || activeMode() != CoverMode.CALCULATOR) return null
+        if (state != State.IDLE || activeMode() != modeToRecover) return null
         attempt++
         changeState(State.AUTHENTICATING)
         return attempt
@@ -24,7 +25,7 @@ class CalculatorCoverRecoveryManager(
 
     fun authenticationSucceeded(id: Long) {
         if (id != attempt || state != State.AUTHENTICATING) return
-        if (activeMode() != CoverMode.CALCULATOR) cancel() else changeState(State.CONFIRMING)
+        if (activeMode() != modeToRecover) cancel() else changeState(State.CONFIRMING)
     }
 
     fun authenticationRejected(id: Long) {
@@ -37,13 +38,13 @@ class CalculatorCoverRecoveryManager(
     }
 
     fun confirmReset(): Boolean {
-        if (state != State.CONFIRMING || activeMode() != CoverMode.CALCULATOR) {
+        if (state != State.CONFIRMING || activeMode() != modeToRecover) {
             cancel()
             return false
         }
         changeState(State.RESETTING)
         try {
-            resetCalculator()
+            resetCover()
             return true
         } finally {
             cancel()

@@ -53,8 +53,17 @@ class CalendarAccessManager(context: Context) {
         false
     }
 
-    fun clear() {
+    /** Retain the device key until the journal commits so recovery can roll back. */
+    internal fun clearVerifier() {
         check(preferences.edit().clear().commit()) { "Unable to clear calendar access rule" }
+    }
+
+    fun clear() {
+        clearVerifier()
+        deleteKey()
+    }
+
+    internal fun deleteKey() {
         try {
             keyStore().deleteEntry(KEY_ALIAS)
         } catch (_: Exception) {
