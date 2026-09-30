@@ -42,7 +42,8 @@ class CoverModeManager(context: Context) {
     }
 
     fun deactivateToLauncher(style: LauncherStyle) {
-        require(style == LauncherStyle.DEFAULT)
+        // Notes and Gallery retain their existing icon/name-only disguise.
+        require(style in setOf(LauncherStyle.DEFAULT, LauncherStyle.NOTES, LauncherStyle.GALLERY))
         transition(CoverMode.DEFAULT, style) {}
     }
 
@@ -108,8 +109,11 @@ class CoverModeManager(context: Context) {
             CoverMode.CALCULATOR -> if (!isCalculatorReady()) resetToDefault()
             CoverMode.CALENDAR -> if (!isCalendarReady()) resetToDefault()
             CoverMode.DEFAULT -> {
-                // Repair aliases from old icon-only releases; covers require valid setup.
-                if (launcher.selectedStyle() != LauncherStyle.DEFAULT) resetToDefault()
+                // Only actual cover activities require setup. Icon/name-only styles
+                // must survive app/process restarts without losing their selection.
+                if (launcher.selectedStyle() in setOf(LauncherStyle.CALCULATOR, LauncherStyle.CALENDAR)) {
+                    resetToDefault()
+                }
             }
             CoverMode.NOTES, CoverMode.GALLERY -> resetToDefault()
         }

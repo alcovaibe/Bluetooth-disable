@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -21,6 +23,7 @@ import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
+import com.pulse.bluetoothdisable.ui.CoverModeConfirmationDialog
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -59,16 +62,11 @@ class CalendarCoverSetupActivity : ComponentActivity() {
 
 @Composable
 fun CalendarCoverConfirmationDialog(onContinue: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.calendar_cover_confirm_title)) },
-        text = { Text(stringResource(R.string.calendar_cover_confirm_message)) },
-        confirmButton = {
-            TextButton(onClick = onContinue) { Text(stringResource(R.string.continue_action)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-        },
+    CoverModeConfirmationDialog(
+        titleRes = R.string.calendar_cover_confirm_title,
+        messageRes = R.string.calendar_cover_confirm_message,
+        onContinue = onContinue,
+        onDismiss = onDismiss,
     )
 }
 
@@ -102,8 +100,13 @@ private fun CalendarSetupScreen(
                 Text(CalendarAccessPolicy.normalize(text))
                 Text(stringResource(R.string.calendar_setup_instructions))
             } else {
-                OutlinedButton(onClick = { choosingDate = true }) {
+                OutlinedButton(
+                    onClick = { choosingDate = true },
+                    modifier = Modifier.testTag("calendar_access_date_picker"),
+                ) {
                     Text(CalendarDates.formatDate(date, locale))
+                    Spacer(Modifier.width(8.dp))
+                    Icon(painterResource(R.drawable.ic_expand_more), contentDescription = null)
                 }
                 OutlinedTextField(
                     value = text,

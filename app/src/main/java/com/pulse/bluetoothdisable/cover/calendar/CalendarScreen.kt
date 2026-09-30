@@ -113,20 +113,13 @@ fun CalendarScreen(viewModel: CalendarViewModel, onUnlock: () -> Unit) {
                 Text(stringResource(R.string.calendar_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             items(notes, key = { it.id }) { note ->
-                OutlinedCard(onClick = { viewModel.click(note, onUnlock) }, enabled = !state.busy) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        // Identical presentation for every note, regardless of the access rule.
-                        Text(note.text, style = MaterialTheme.typography.bodyLarge)
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { viewModel.edit(note) }, enabled = !state.busy, modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.calendar_edit_note))
-                            }
-                            TextButton(onClick = { deleting = note }, enabled = !state.busy, modifier = Modifier.weight(1f)) {
-                                Text(stringResource(R.string.calendar_delete))
-                            }
-                        }
-                    }
-                }
+                CalendarNoteCard(
+                    note = note,
+                    busy = state.busy,
+                    onClick = { viewModel.click(note, onUnlock) },
+                    onEdit = { viewModel.edit(note) },
+                    onDelete = { deleting = note },
+                )
             }
         }
     }
@@ -147,7 +140,7 @@ fun CalendarScreen(viewModel: CalendarViewModel, onUnlock: () -> Unit) {
             text = { Text(stringResource(R.string.calendar_delete_confirmation)) },
             confirmButton = {
                 TextButton(onClick = { viewModel.delete(note); deleting = null }) {
-                    Text(stringResource(R.string.calendar_delete))
+                    Text(stringResource(R.string.calendar_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

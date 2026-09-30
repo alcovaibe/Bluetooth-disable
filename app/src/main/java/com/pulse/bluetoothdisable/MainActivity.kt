@@ -218,7 +218,6 @@ class MainActivity : ComponentActivity() {
             showCalendarCoverConfirmation = true
             return
         }
-        if (style == LauncherStyle.NOTES || style == LauncherStyle.GALLERY) return
         changeLauncherStyle(style)
     }
 

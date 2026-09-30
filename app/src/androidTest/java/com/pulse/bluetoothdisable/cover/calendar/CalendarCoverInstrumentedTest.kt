@@ -2,6 +2,8 @@ package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.content.Intent
+import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -43,6 +45,89 @@ class CalendarCoverInstrumentedTest {
         LanguageManager.setSelectedLanguage(context, LanguageManager.ENGLISH)
     }
     @After fun after() { manager.resetToDefault() }
+
+    @Test fun restoredIconAndNameChoicesPersistAfterRestart() {
+        val controller = LauncherIconController(context)
+        for ((style, label) in listOf(LauncherStyle.NOTES to "Notes", LauncherStyle.GALLERY to "Gallery")) {
+            manager.activateCalculator("58317")
+            ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use {
+                compose.onNodeWithText("CHANGE ICON").performScrollTo().performClick()
+                for (option in listOf("Default", "Calculator", "Notes", "Calendar", "Gallery")) {
+                    compose.onNodeWithText(option).performScrollTo().assertIsDisplayed()
+                }
+                capturePreview("restored-cover-options.png")
+                compose.onNodeWithText(label).performScrollTo().performClick()
+                compose.waitUntil(5_000) { controller.isExclusivelyEnabled(style) && isMainResumed() }
+                assertEquals(CoverMode.DEFAULT, manager.activeMode())
+                assertFalse(CalculatorAccessCodeManager(context).hasCode())
+                CoverModeManager(context).recoverInterruptedSetup()
+                assertEquals(style, controller.selectedStyle())
+                assertTrue(controller.isExclusivelyEnabled(style))
+                val alias = ComponentName(context, "${context.packageName}.LauncherAlias${label}")
+                val info = context.packageManager.getActivityInfo(alias, PackageManager.MATCH_DISABLED_COMPONENTS)
+                assertEquals(MainActivity::class.java.name, info.targetActivity)
+                assertEquals(label, info.loadLabel(context.packageManager).toString())
+                assertTrue(info.icon != 0)
+            }
+        }
+    }
+
+    @Test fun noteActionsExpandVerticallyWithoutUnlockingAndKeepEditDeleteBehavior() {
+        manager.activateCalendar(date, "access note")
+        val repo = LocalCalendarNotesRepository(context)
+        repo.save(date, "access note")
+        ActivityScenario.launch<CalendarCoverActivity>(Intent(context, CalendarCoverActivity::class.java)).use { scenario ->
+            scenario.onActivity { ViewModelProvider(it)[CalendarViewModel::class.java].select(date) }
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("access note").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("Edit note").assertDoesNotExist()
+            compose.onNodeWithText("Delete").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Show note actions").performScrollTo().performClick()
+            compose.onNodeWithText("Edit note").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithText("Delete").performScrollTo().assertIsDisplayed()
+            val edit = compose.onNodeWithText("Edit note").fetchSemanticsNode().boundsInRoot
+            val delete = compose.onNodeWithText("Delete").fetchSemanticsNode().boundsInRoot
+            assertTrue("Delete belongs below Edit", delete.top >= edit.bottom)
+            assertFalse(isMainResumed())
+            capturePreview("calendar-note-actions-expanded.png")
+            compose.onNodeWithText("Edit note").performClick()
+            compose.onNodeWithTag("calendar_note_text").assertTextEquals("access note")
+            assertFalse(isMainResumed())
+            compose.onNodeWithText("CANCEL").performClick()
+            compose.onNodeWithContentDescription("Hide note actions").performClick()
+            compose.onNodeWithText("Delete").assertDoesNotExist()
+            compose.onNodeWithContentDescription("Show note actions").performClick()
+            compose.onNodeWithText("Delete").performScrollTo().performClick()
+            compose.onNodeWithText("CANCEL").performClick()
+            assertEquals(1, repo.notes().size)
+            compose.onNodeWithText("Delete").performClick()
+            compose.onNode(hasText("Delete") and hasAnyAncestor(isDialog())).performClick()
+            compose.waitUntil(5_000) { repo.notes().isEmpty() }
+            assertFalse(isMainResumed())
+            assertEquals(CoverMode.CALENDAR, manager.activeMode())
+        }
+    }
+
+    @Test fun calendarWarningUsesBottomSheetAndDateButtonOpensPicker() {
+        ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use {
+            compose.onNodeWithText("CHANGE ICON").performScrollTo().performClick()
+            compose.onNodeWithText("Calendar").performScrollTo().performClick()
+            compose.onNodeWithText("Calendar mode").assertIsDisplayed()
+            val dialog = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+            val title = compose.onNodeWithText("Calendar mode").fetchSemanticsNode().boundsInRoot
+            assertTrue("Warning is bottom aligned", title.top > dialog.center.y)
+            capturePreview("calendar-warning-bottom-sheet.png")
+            compose.onNodeWithText("CONTINUE").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("calendar_access_date_picker").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("calendar_access_date_picker").assertIsDisplayed()
+            capturePreview("calendar-setup-date-chevron.png")
+            compose.onNodeWithTag("calendar_access_date_picker").performClick()
+            compose.onNode(isDialog()).assertExists()
+            compose.onNodeWithText("CANCEL").performClick()
+            assertEquals(CoverMode.DEFAULT, manager.activeMode())
+        }
+    }
 
     @Test fun saveDoesNotUnlockButNoteTapOpensMainAndHideClearsTask() {
         manager.activateCalendar(date, "открой меня")

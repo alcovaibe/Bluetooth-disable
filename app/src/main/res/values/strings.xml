@@ -103,4 +103,6 @@
     <string name="calculator_recovery_reset">RESET</string>
     <string name="calculator_recovery_auth_unavailable">Device authentication is unavailable. Check the device screen lock and try again.</string>
     <string name="calculator_recovery_error">Unable to reset cover mode. Try again.</string>
+    <string name="calendar_show_note_actions">Show note actions</string>
+    <string name="calendar_hide_note_actions">Hide note actions</string>
 </resources>
