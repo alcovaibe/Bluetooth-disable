@@ -73,7 +73,9 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: ./gradlew connectedDebugAndroidTest
+          script: |
+            ./gradlew connectedDebugAndroidTest
+            adb pull /sdcard/Android/data/com.pulse.bluetoothdisable/files/calendar-previews app/build/calendar-previews
 
       - name: Upload instrumented test reports
         if: always()
@@ -83,3 +85,4 @@ jobs:
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
+            app/build/calendar-previews/

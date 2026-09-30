@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -91,7 +92,7 @@ class CoverModeNavigationInstrumentedTest {
             }
             waitForIdle()
 
-            val mainActivity = resumedActivities().filterIsInstance<MainActivity>().single()
+            val mainActivity = awaitResumedActivity(MainActivity::class.java)
             assertEquals(
                 CoverMode.CALCULATOR,
                 CoverModeNavigator.coverOrigin(mainActivity, mainActivity.intent),
@@ -102,6 +103,7 @@ class CoverModeNavigationInstrumentedTest {
             }
             waitForIdle()
 
+            awaitResumedActivity(CalculatorCoverActivity::class.java)
             assertTrue(resumedActivities().any { it is CalculatorCoverActivity })
             assertFalse(resumedActivities().any { it is MainActivity })
 
@@ -119,6 +121,18 @@ class CoverModeNavigationInstrumentedTest {
             PackageManager.MATCH_DISABLED_COMPONENTS,
         )
         return info.targetActivity
+    }
+
+    // Waiting for a drained main looper does not wait for ActivityTaskManager to launch
+    // another activity. Observe the actual lifecycle state before checking navigation.
+    private fun <T : Activity> awaitResumedActivity(type: Class<T>): T {
+        val deadline = SystemClock.uptimeMillis() + 10_000
+        while (SystemClock.uptimeMillis() < deadline) {
+            val activity = resumedActivities().firstOrNull { type.isInstance(it) }
+            if (activity != null) return type.cast(activity)!!
+            SystemClock.sleep(50)
+        }
+        throw AssertionError("Activity did not resume: ${type.name}")
     }
 
     private fun waitForIdle() {

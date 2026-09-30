@@ -2,6 +2,8 @@ package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import java.io.File
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -57,11 +59,13 @@ class CalendarCoverInstrumentedTest {
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isEmpty() }
             compose.onNodeWithText("открой меня").assertIsDisplayed()
             assertFalse(isMainResumed())
+            capturePreview("calendar-saved-note.png")
             compose.onNodeWithText("открой меня").performClick()
             compose.waitUntil(5_000) { isMainResumed() }
             compose.onNodeWithText("HIDE").assertIsDisplayed().performClick()
             compose.waitUntil(5_000) { !isMainResumed() }
             compose.onNodeWithTag("calendar_day_${LocalDate.now()}").assertExists()
+            capturePreview("calendar-after-hide.png")
             Espresso.pressBackUnconditionally()
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             assertFalse(isMainResumed())
@@ -167,6 +171,14 @@ class CalendarCoverInstrumentedTest {
                 context.getSharedPreferences(name, Context.MODE_PRIVATE).all.forEach { (key, value) -> put(key, value) }
             })
         }
+    }
+
+    private fun capturePreview(name: String) {
+        compose.waitForIdle()
+        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
+        val directory = File(context.getExternalFilesDir(null), "calendar-previews").apply { mkdirs() }
+        File(directory, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        bitmap.recycle()
     }
 
     private fun isMainResumed(): Boolean {
