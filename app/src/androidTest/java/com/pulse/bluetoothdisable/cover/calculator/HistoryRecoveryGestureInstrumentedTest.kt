@@ -4,6 +4,8 @@ import android.os.SystemClock
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
@@ -35,6 +37,39 @@ class HistoryRecoveryGestureInstrumentedTest {
         compose.mainClock.autoAdvance = false
     }
     private fun title() = compose.onNodeWithText(context.getString(R.string.calculator_history))
+
+    @Test fun blankHeaderAreaAndPaddingTriggerOncePerHold() {
+        showHistory()
+        val header = compose.onNodeWithTag("calculator_history_header")
+        // Both points are outside the History text: right-side blank space and
+        // the lower-left padding of the colored header rectangle.
+        repeat(2) { index ->
+            header.performTouchInput {
+                down(if (index == 0) Offset(width - 4f, center.y) else Offset(4f, height - 4f))
+            }
+            compose.mainClock.advanceTimeByFrame()
+            SystemClock.sleep(7_200)
+            compose.mainClock.advanceTimeBy(7_200)
+            compose.waitUntil(2_000) { calls.get() == index + 1 }
+            compose.mainClock.advanceTimeBy(3_000)
+            assertEquals(index + 1, calls.get())
+            header.performTouchInput { up() }
+        }
+    }
+
+    @Test fun historyRowsAndClearButtonAreOutsideRecoveryArea() {
+        showHistory()
+        val row = compose.onNodeWithText("1+1 = 2")
+        val clear = compose.onNodeWithText(context.getString(R.string.calculator_clear_history))
+        for (node in listOf(row, clear)) {
+            node.performTouchInput { down(center) }
+            compose.mainClock.advanceTimeByFrame()
+            SystemClock.sleep(7_200)
+            compose.mainClock.advanceTimeBy(7_200)
+            assertEquals(0, calls.get())
+            node.performTouchInput { up() }
+        }
+    }
 
     @Test fun sevenSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
         showHistory()

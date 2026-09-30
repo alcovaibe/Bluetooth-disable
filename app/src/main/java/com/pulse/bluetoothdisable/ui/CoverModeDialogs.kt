@@ -30,6 +30,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.pulse.bluetoothdisable.R
 
+internal fun coverSetupFieldShape(): RoundedCornerShape = RoundedCornerShape(20.dp)
+
 @Composable
 internal fun CoverModeConfirmationDialog(
     @StringRes titleRes: Int,
@@ -138,4 +140,3 @@ internal fun CoverModeDialogActions(
         }
     }
 }
-

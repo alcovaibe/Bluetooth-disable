@@ -21,6 +21,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,12 +53,13 @@ fun CalculatorHistoryDrawer(
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .statusBarsPadding()
+                .testTag("calculator_history_header")
+                .historyRecoveryHold(recoveryEnabled, onRecoveryHold)
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             Text(
                 text = stringResource(R.string.calculator_history),
-                modifier = Modifier.historyRecoveryHold(recoveryEnabled, onRecoveryHold),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,

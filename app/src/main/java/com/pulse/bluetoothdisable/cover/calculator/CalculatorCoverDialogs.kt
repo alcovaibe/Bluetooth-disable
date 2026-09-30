@@ -2,7 +2,6 @@ package com.pulse.bluetoothdisable.cover.calculator
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -24,6 +23,7 @@ import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.ui.CoverModeBottomSheet
 import com.pulse.bluetoothdisable.ui.CoverModeConfirmationDialog
 import com.pulse.bluetoothdisable.ui.CoverModeDialogActions
+import com.pulse.bluetoothdisable.ui.coverSetupFieldShape
 
 @Composable
 fun CalculatorCoverConfirmationDialog(
@@ -121,7 +121,7 @@ private fun AccessCodeField(
         ),
         singleLine = true,
         isError = showLengthError || mismatch,
-        shape = RoundedCornerShape(20.dp),
+        shape = coverSetupFieldShape(),
         supportingText = {
             when {
                 mismatch -> Text(stringResource(R.string.calculator_code_mismatch))
