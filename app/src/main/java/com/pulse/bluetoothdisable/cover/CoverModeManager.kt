@@ -7,6 +7,8 @@ import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
 import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessPolicy
 import com.pulse.bluetoothdisable.cover.calendar.CalendarDates
 import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
+import com.pulse.bluetoothdisable.cover.notes.LocalNotesRepository
+import com.pulse.bluetoothdisable.cover.notes.NotesAccessManager
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import java.time.LocalDate
@@ -18,6 +20,7 @@ class CoverModeManager(context: Context) {
     private val launcher = LauncherIconController(appContext)
     private val calculatorAccess = CalculatorAccessCodeManager(appContext)
     private val calendarAccess = CalendarAccessManager(appContext)
+    private val notesAccess = NotesAccessManager(appContext)
 
     fun activeMode(): CoverMode = store.activeMode()
 
@@ -28,6 +31,10 @@ class CoverModeManager(context: Context) {
     fun isCalendarReady(): Boolean =
         activeMode() == CoverMode.CALENDAR &&
             launcher.selectedStyle() == LauncherStyle.CALENDAR && calendarAccess.hasRule()
+
+    /** Notes can deliberately remain active even after its hidden access note is edited/deleted. */
+    fun isNotesReady(): Boolean =
+        activeMode() == CoverMode.NOTES && launcher.selectedStyle() == LauncherStyle.NOTES
 
     fun activateCalculator(code: String) {
         require(CalculatorAccessCodePolicy.isValid(code))
@@ -41,13 +48,21 @@ class CoverModeManager(context: Context) {
         }
     }
 
+    fun activateNotes(noteId: String, start: Int, end: Int, body: String) {
+        val stored = LocalNotesRepository(appContext).notes().firstOrNull { it.id == noteId }
+        require(stored != null && stored.body == body) { "Selected note changed before activation" }
+        transition(CoverMode.NOTES, LauncherStyle.NOTES) {
+            notesAccess.setAccessRule(noteId, body, start, end)
+        }
+    }
+
     fun deactivateToLauncher(style: LauncherStyle) {
-        // Notes and Gallery retain their existing icon/name-only disguise.
-        require(style in setOf(LauncherStyle.DEFAULT, LauncherStyle.NOTES, LauncherStyle.GALLERY))
+        // Gallery retains its icon/name-only disguise. Notes is now a full Cover Mode.
+        require(style in setOf(LauncherStyle.DEFAULT, LauncherStyle.GALLERY))
         transition(CoverMode.DEFAULT, style) {}
     }
 
-    /** Calculator-only recovery. History and calendar notes are deliberately untouched. */
+    /** Calculator-only recovery. History and all note stores are deliberately untouched. */
     fun resetCalculatorCover() {
         check(activeMode() == CoverMode.CALCULATOR)
         transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
@@ -57,7 +72,7 @@ class CoverModeManager(context: Context) {
         }, cleanup = calculatorAccess::deleteKey) { calculatorAccess.clearVerifier() }
     }
 
-    /** Disable Calendar disguise while retaining notes and calculator history. */
+    /** Disable Calendar disguise while retaining its notes and all other local notes. */
     fun resetCalendarCover() {
         check(activeMode() == CoverMode.CALENDAR)
         transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
@@ -67,7 +82,17 @@ class CoverModeManager(context: Context) {
         }, cleanup = calendarAccess::deleteKey) { calendarAccess.clearVerifier() }
     }
 
-    /** The durable journal contains only ISO dates and opaque verifiers, never input secrets.
+    /** Disable Notes disguise and its temporary hidden-access rule, but never delete user notes. */
+    fun resetNotesCover() {
+        check(activeMode() == CoverMode.NOTES)
+        transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
+            check(launcher.isExclusivelyEnabled(LauncherStyle.DEFAULT)) {
+                "Unable to restore default launcher"
+            }
+        }, cleanup = notesAccess::deleteKey) { notesAccess.clearVerifier() }
+    }
+
+    /** The durable journal contains opaque access verifiers and offsets, never secret text.
      * Previous keys are retained until the commit point so process death can roll back.
      */
     private fun transition(
@@ -83,6 +108,7 @@ class CoverModeManager(context: Context) {
             put("hidden", launcher.isHidden())
             put("calculator", accessSnapshot(CalculatorAccessCodeManager.PREFERENCES_NAME))
             put("calendar", accessSnapshot(CalendarAccessManager.PREFERENCES_NAME))
+            put("notes", accessSnapshot(NotesAccessManager.PREFERENCES_NAME))
         }
         store.beginTransition(mode, snapshot)
         try {
@@ -101,7 +127,9 @@ class CoverModeManager(context: Context) {
     fun resetToDefault() {
         calculatorAccess.clearCode()
         calendarAccess.clear()
+        notesAccess.clear()
         LocalCalendarNotesRepository(appContext).clear()
+        // Local Notes are intentionally retained. They are user data, not Cover Mode configuration.
         try {
             store.setActiveMode(CoverMode.DEFAULT)
             store.clearPending()
@@ -118,14 +146,19 @@ class CoverModeManager(context: Context) {
         when (activeMode()) {
             CoverMode.CALCULATOR -> if (!isCalculatorReady()) resetToDefault()
             CoverMode.CALENDAR -> if (!isCalendarReady()) resetToDefault()
+            CoverMode.NOTES -> if (!isNotesReady()) resetToDefault()
             CoverMode.DEFAULT -> {
-                // Only actual cover activities require setup. Icon/name-only styles
-                // must survive app/process restarts without losing their selection.
-                if (launcher.selectedStyle() in setOf(LauncherStyle.CALCULATOR, LauncherStyle.CALENDAR)) {
+                // Only actual cover activities require setup. Gallery remains icon/name-only.
+                if (launcher.selectedStyle() in setOf(
+                        LauncherStyle.CALCULATOR,
+                        LauncherStyle.CALENDAR,
+                        LauncherStyle.NOTES,
+                    )
+                ) {
                     resetToDefault()
                 }
             }
-            CoverMode.NOTES, CoverMode.GALLERY -> resetToDefault()
+            CoverMode.GALLERY -> resetToDefault()
         }
         clearInactiveAccess()
     }
@@ -145,6 +178,10 @@ class CoverModeManager(context: Context) {
     private fun restore(snapshot: JSONObject) {
         restoreAccess(CalculatorAccessCodeManager.PREFERENCES_NAME, snapshot.getJSONObject("calculator"))
         restoreAccess(CalendarAccessManager.PREFERENCES_NAME, snapshot.getJSONObject("calendar"))
+        restoreAccess(
+            NotesAccessManager.PREFERENCES_NAME,
+            snapshot.optJSONObject("notes") ?: JSONObject(),
+        )
         launcher.setStyle(LauncherStyle.valueOf(snapshot.getString("style")))
         if (snapshot.getBoolean("hidden")) launcher.hide()
         store.setActiveMode(CoverMode.valueOf(snapshot.getString("mode")))
@@ -155,5 +192,6 @@ class CoverModeManager(context: Context) {
     private fun clearInactiveAccess() {
         if (activeMode() != CoverMode.CALCULATOR) calculatorAccess.clearCode()
         if (activeMode() != CoverMode.CALENDAR) calendarAccess.clear()
+        if (activeMode() != CoverMode.NOTES) notesAccess.clear()
     }
 }

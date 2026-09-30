@@ -70,6 +70,7 @@
     <string name="calculator_history_empty">Вычислений пока нет.</string>
     <string name="calculator_clear_history">ОЧИСТИТЬ ИСТОРИЮ</string>
     <string name="calculator_close">ЗАКРЫТЬ</string>
+
     <string name="calendar_cover_confirm_title">Режим «Календарь»</string>
     <string name="calendar_cover_confirm_message">Приложение будет запускаться как календарь. Для доступа к основному экрану откройте выбранную дату, создайте заметку с заданным текстом, сохраните её и нажмите на заметку.</string>
     <string name="calendar_setup_title">Настройка режима «Календарь»</string>
@@ -96,11 +97,44 @@
     <string name="calendar_no_notes">На эту дату нет заметок.</string>
     <string name="calendar_storage_error">Не удалось прочитать или сохранить заметки. Повторите попытку.</string>
     <string name="calendar_retry">Повторить</string>
+
+    <string name="notes_cover_confirm_title">Режим «Заметки»</string>
+    <string name="notes_cover_confirm_message">Приложение будет запускаться как «Заметки». Создайте или выберите локальную заметку, а затем выделите скрытый фрагмент текста. Нажатие именно на этот фрагмент откроет основной экран приложения.</string>
+    <string name="notes_setup_title">Настройка режима «Заметки»</string>
+    <string name="notes_setup_description">Создайте заметки вручную или автоматически, затем выберите одну для скрытого входа. При переключении на другой режим маскировки сами заметки сохраняются локально.</string>
+    <string name="notes_add">Добавить заметку</string>
+    <string name="notes_generate">Сгенерировать</string>
+    <string name="notes_generate_title">Автогенерация заметок</string>
+    <string name="notes_generate_description">Выберите количество локальных заметок. Используются только шаблоны и словари — без ИИ, API и сетевого подключения.</string>
+    <string name="notes_select_access_note">Выберите заметку для скрытого входа</string>
+    <string name="notes_secret_instruction">Выделите фрагмент текста внутри заметки. В режиме маскировки он будет выглядеть точно так же, как обычный текст.</string>
+    <string name="notes_secret_hint">Выделите от 1 до 80 непустых символов. Сам выбранный фрагмент отдельно в открытом виде не сохраняется.</string>
+    <string name="notes_selected_fragment">Выбрано: «%1$s»</string>
+    <string name="notes_finish_setup">ЗАВЕРШИТЬ НАСТРОЙКУ</string>
+    <string name="notes_back">НАЗАД</string>
+    <string name="notes_setup_completed">Настройка завершена</string>
+    <string name="notes_setup_failed">Не удалось завершить настройку режима «Заметки». Повторите попытку.</string>
+    <string name="notes_note">Заметка</string>
+    <string name="notes_empty">Заметок пока нет.</string>
+    <string name="notes_storage_error">Не удалось прочитать или сохранить заметки. Повторите попытку.</string>
+    <string name="notes_retry">Повторить</string>
+    <string name="notes_edit">Изменить</string>
+    <string name="notes_edit_note">Редактировать заметку</string>
+    <string name="notes_delete">Удалить</string>
+    <string name="notes_delete_note">Удалить заметку?</string>
+    <string name="notes_delete_confirmation">Эта заметка будет удалена.</string>
+    <string name="notes_pin">Закрепить</string>
+    <string name="notes_unpin">Открепить</string>
+    <string name="notes_title_label">Заголовок</string>
+    <string name="notes_body_label">Текст заметки</string>
+    <string name="notes_save">Сохранить</string>
+
     <string name="cover_recovery_auth_title">Подтвердите личность</string>
     <string name="cover_recovery_auth_description">Для сброса режима маскировки подтвердите владельца устройства.</string>
     <string name="cover_recovery_title">Сбросить режим маскировки?</string>
     <string name="calculator_recovery_description">Режим «Калькулятор» будет отключён. Приложение снова будет использовать стандартные название и значок.</string>
     <string name="calendar_recovery_description">Режим «Календарь» будет отключён. Приложение снова будет использовать стандартные название и значок. Ваши заметки сохранятся.</string>
+    <string name="notes_recovery_description">Режим «Заметки» будет отключён. Приложение снова будет использовать стандартные название и значок. Все локальные заметки сохранятся.</string>
     <string name="cover_recovery_reset">СБРОСИТЬ</string>
     <string name="cover_recovery_auth_unavailable">Системная проверка личности недоступна. Проверьте блокировку экрана устройства и попробуйте снова.</string>
     <string name="cover_recovery_error">Не удалось сбросить режим маскировки. Повторите попытку.</string>

@@ -70,6 +70,7 @@
     <string name="calculator_history_empty">No calculations yet.</string>
     <string name="calculator_clear_history">CLEAR HISTORY</string>
     <string name="calculator_close">CLOSE</string>
+
     <string name="calendar_cover_confirm_title">Calendar mode</string>
     <string name="calendar_cover_confirm_message">The app will launch as a calendar. To access the main screen, open your chosen date, create a note with your chosen text, save it and tap the note.</string>
     <string name="calendar_setup_title">Calendar setup</string>
@@ -96,11 +97,44 @@
     <string name="calendar_no_notes">No notes for this date.</string>
     <string name="calendar_storage_error">Unable to read or save notes. Please try again.</string>
     <string name="calendar_retry">Retry</string>
+
+    <string name="notes_cover_confirm_title">Notes mode</string>
+    <string name="notes_cover_confirm_message">The app will launch as Notes. Create or choose a local note, then select a hidden text fragment inside it. Tapping that exact fragment will open the main app screen.</string>
+    <string name="notes_setup_title">Notes setup</string>
+    <string name="notes_setup_description">Create or generate notes, then choose one for hidden access. Notes are kept locally when you switch to another cover mode.</string>
+    <string name="notes_add">Add note</string>
+    <string name="notes_generate">Generate</string>
+    <string name="notes_generate_title">Generate notes</string>
+    <string name="notes_generate_description">Choose how many local notes to create. Templates and dictionaries are used; no AI, API or network connection is involved.</string>
+    <string name="notes_select_access_note">Choose a note for hidden access</string>
+    <string name="notes_secret_instruction">Select a text fragment inside the note. It will look exactly like ordinary text in Notes Cover Mode.</string>
+    <string name="notes_secret_hint">Select 1–80 non-blank characters. The selected fragment itself is not stored separately as plaintext.</string>
+    <string name="notes_selected_fragment">Selected: “%1$s”</string>
+    <string name="notes_finish_setup">FINISH SETUP</string>
+    <string name="notes_back">BACK</string>
+    <string name="notes_setup_completed">Setup completed</string>
+    <string name="notes_setup_failed">Unable to complete Notes setup. Please try again.</string>
+    <string name="notes_note">Note</string>
+    <string name="notes_empty">No notes yet.</string>
+    <string name="notes_storage_error">Unable to read or save notes. Please try again.</string>
+    <string name="notes_retry">Retry</string>
+    <string name="notes_edit">Edit</string>
+    <string name="notes_edit_note">Edit note</string>
+    <string name="notes_delete">Delete</string>
+    <string name="notes_delete_note">Delete note?</string>
+    <string name="notes_delete_confirmation">This note will be deleted.</string>
+    <string name="notes_pin">Pin</string>
+    <string name="notes_unpin">Unpin</string>
+    <string name="notes_title_label">Title</string>
+    <string name="notes_body_label">Note</string>
+    <string name="notes_save">Save</string>
+
     <string name="cover_recovery_auth_title">Verify your identity</string>
     <string name="cover_recovery_auth_description">Confirm the device owner to reset the cover mode.</string>
     <string name="cover_recovery_title">Reset cover mode?</string>
     <string name="calculator_recovery_description">Calculator Cover Mode will be disabled. The app will return to its default name and icon.</string>
     <string name="calendar_recovery_description">Calendar Cover Mode will be disabled. The app will return to its default name and icon. Your notes will be kept.</string>
+    <string name="notes_recovery_description">Notes Cover Mode will be disabled. The app will return to its default name and icon. Your local notes will be kept.</string>
     <string name="cover_recovery_reset">RESET</string>
     <string name="cover_recovery_auth_unavailable">Device authentication is unavailable. Check the device screen lock and try again.</string>
     <string name="cover_recovery_error">Unable to reset cover mode. Try again.</string>
