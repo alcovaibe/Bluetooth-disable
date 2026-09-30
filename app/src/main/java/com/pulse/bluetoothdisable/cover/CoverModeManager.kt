@@ -7,6 +7,9 @@ import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
 import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessPolicy
 import com.pulse.bluetoothdisable.cover.calendar.CalendarDates
 import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
+import com.pulse.bluetoothdisable.cover.gallery.GalleryAccessManager
+import com.pulse.bluetoothdisable.cover.gallery.GalleryRepository
+import com.pulse.bluetoothdisable.cover.gallery.GalleryTapZone
 import com.pulse.bluetoothdisable.cover.notes.LocalNotesRepository
 import com.pulse.bluetoothdisable.cover.notes.NotesAccessManager
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
@@ -21,6 +24,7 @@ class CoverModeManager(context: Context) {
     private val calculatorAccess = CalculatorAccessCodeManager(appContext)
     private val calendarAccess = CalendarAccessManager(appContext)
     private val notesAccess = NotesAccessManager(appContext)
+    private val galleryAccess = GalleryAccessManager(appContext)
 
     fun activeMode(): CoverMode = store.activeMode()
 
@@ -35,6 +39,10 @@ class CoverModeManager(context: Context) {
     /** Notes can deliberately remain active even after its hidden access note is edited/deleted. */
     fun isNotesReady(): Boolean =
         activeMode() == CoverMode.NOTES && launcher.selectedStyle() == LauncherStyle.NOTES
+
+    /** Gallery likewise remains a valid cover if its secret image is deleted after activation. */
+    fun isGalleryReady(): Boolean =
+        activeMode() == CoverMode.GALLERY && launcher.selectedStyle() == LauncherStyle.GALLERY
 
     fun activateCalculator(code: String) {
         require(CalculatorAccessCodePolicy.isValid(code))
@@ -56,13 +64,20 @@ class CoverModeManager(context: Context) {
         }
     }
 
+    fun activateGallery(imageId: String, sequence: List<GalleryTapZone>) {
+        require(GalleryRepository(appContext).image(imageId) != null) { "Selected gallery image does not exist" }
+        transition(CoverMode.GALLERY, LauncherStyle.GALLERY) {
+            galleryAccess.setAccessRule(imageId, sequence)
+        }
+    }
+
     fun deactivateToLauncher(style: LauncherStyle) {
-        // Gallery retains its icon/name-only disguise. Notes is now a full Cover Mode.
-        require(style in setOf(LauncherStyle.DEFAULT, LauncherStyle.GALLERY))
+        // Every non-default launcher style is now a full Cover Mode and requires its setup flow.
+        require(style == LauncherStyle.DEFAULT)
         transition(CoverMode.DEFAULT, style) {}
     }
 
-    /** Calculator-only recovery. History and all note stores are deliberately untouched. */
+    /** Calculator-only recovery. History and all note/gallery stores are deliberately untouched. */
     fun resetCalculatorCover() {
         check(activeMode() == CoverMode.CALCULATOR)
         transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
@@ -72,7 +87,7 @@ class CoverModeManager(context: Context) {
         }, cleanup = calculatorAccess::deleteKey) { calculatorAccess.clearVerifier() }
     }
 
-    /** Disable Calendar disguise while retaining its notes and all other local notes. */
+    /** Disable Calendar disguise while retaining its notes and all other local data. */
     fun resetCalendarCover() {
         check(activeMode() == CoverMode.CALENDAR)
         transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
@@ -92,7 +107,17 @@ class CoverModeManager(context: Context) {
         }, cleanup = notesAccess::deleteKey) { notesAccess.clearVerifier() }
     }
 
-    /** The durable journal contains opaque access verifiers and offsets, never secret text.
+    /** Disable Gallery disguise and access sequence while retaining all imported photos and metadata. */
+    fun resetGalleryCover() {
+        check(activeMode() == CoverMode.GALLERY)
+        transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
+            check(launcher.isExclusivelyEnabled(LauncherStyle.DEFAULT)) {
+                "Unable to restore default launcher"
+            }
+        }, cleanup = galleryAccess::deleteKey) { galleryAccess.clearVerifier() }
+    }
+
+    /** The durable journal contains opaque access verifiers and offsets, never secret text/sequences.
      * Previous keys are retained until the commit point so process death can roll back.
      */
     private fun transition(
@@ -109,6 +134,7 @@ class CoverModeManager(context: Context) {
             put("calculator", accessSnapshot(CalculatorAccessCodeManager.PREFERENCES_NAME))
             put("calendar", accessSnapshot(CalendarAccessManager.PREFERENCES_NAME))
             put("notes", accessSnapshot(NotesAccessManager.PREFERENCES_NAME))
+            put("gallery", accessSnapshot(GalleryAccessManager.PREFERENCES_NAME))
         }
         store.beginTransition(mode, snapshot)
         try {
@@ -128,8 +154,9 @@ class CoverModeManager(context: Context) {
         calculatorAccess.clearCode()
         calendarAccess.clear()
         notesAccess.clear()
+        galleryAccess.clear()
         LocalCalendarNotesRepository(appContext).clear()
-        // Local Notes are intentionally retained. They are user data, not Cover Mode configuration.
+        // Local Notes and Gallery photos are intentionally retained. They are user data, not Cover configuration.
         try {
             store.setActiveMode(CoverMode.DEFAULT)
             store.clearPending()
@@ -147,18 +174,18 @@ class CoverModeManager(context: Context) {
             CoverMode.CALCULATOR -> if (!isCalculatorReady()) resetToDefault()
             CoverMode.CALENDAR -> if (!isCalendarReady()) resetToDefault()
             CoverMode.NOTES -> if (!isNotesReady()) resetToDefault()
+            CoverMode.GALLERY -> if (!isGalleryReady()) resetToDefault()
             CoverMode.DEFAULT -> {
-                // Only actual cover activities require setup. Gallery remains icon/name-only.
                 if (launcher.selectedStyle() in setOf(
                         LauncherStyle.CALCULATOR,
                         LauncherStyle.CALENDAR,
                         LauncherStyle.NOTES,
+                        LauncherStyle.GALLERY,
                     )
                 ) {
                     resetToDefault()
                 }
             }
-            CoverMode.GALLERY -> resetToDefault()
         }
         clearInactiveAccess()
     }
@@ -182,6 +209,10 @@ class CoverModeManager(context: Context) {
             NotesAccessManager.PREFERENCES_NAME,
             snapshot.optJSONObject("notes") ?: JSONObject(),
         )
+        restoreAccess(
+            GalleryAccessManager.PREFERENCES_NAME,
+            snapshot.optJSONObject("gallery") ?: JSONObject(),
+        )
         launcher.setStyle(LauncherStyle.valueOf(snapshot.getString("style")))
         if (snapshot.getBoolean("hidden")) launcher.hide()
         store.setActiveMode(CoverMode.valueOf(snapshot.getString("mode")))
@@ -193,5 +224,6 @@ class CoverModeManager(context: Context) {
         if (activeMode() != CoverMode.CALCULATOR) calculatorAccess.clearCode()
         if (activeMode() != CoverMode.CALENDAR) calendarAccess.clear()
         if (activeMode() != CoverMode.NOTES) notesAccess.clear()
+        if (activeMode() != CoverMode.GALLERY) galleryAccess.clear()
     }
 }
