@@ -56,6 +56,8 @@ To open the main Bluetooth Disable interface, enter the configured five-digit co
 
 After entering Bluetooth Disable, a **“HIDE”** button is available to return directly to the calculator interface.
 
+If you forgot the code and have not added the Quick Settings tile, open calculator history and continuously hold the **History** title text for 7 seconds. Complete Android device authentication (biometrics or device PIN, pattern, password), then confirm the reset. The app returns to its default name and icon; the access code is removed and calculation history is retained. Cancelling at any stage leaves the cover unchanged. This recovery method supports Calculator Cover Mode only.
+
 The access code is stored locally only. The code itself is not stored in plaintext: verification uses HMAC-SHA256 with a key stored in Android Keystore.
 
 The Notes, Calendar, and Gallery variants currently change the launcher icon and application name. Full cover interfaces for these variants are planned for future versions.

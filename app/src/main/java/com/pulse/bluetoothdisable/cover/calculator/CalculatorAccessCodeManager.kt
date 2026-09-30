@@ -4,7 +4,6 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.core.content.edit
 import java.security.KeyStore
 import java.security.MessageDigest
 import javax.crypto.KeyGenerator
@@ -64,11 +63,17 @@ class CalculatorAccessCodeManager(context: Context) {
         }
     }
 
-    fun clearCode() {
-        preferences.edit(commit = true) {
-            clear()
-        }
+    /** Keep the Keystore key until the cover transition commits, allowing rollback. */
+    internal fun clearVerifier() {
+        check(preferences.edit().clear().commit()) { "Unable to remove calculator verifier" }
+    }
 
+    fun clearCode() {
+        clearVerifier()
+        deleteKey()
+    }
+
+    internal fun deleteKey() {
         try {
             val keyStore = loadKeyStore()
 

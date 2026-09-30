@@ -48,6 +48,8 @@ import kotlinx.coroutines.launch
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
     onUnlock: () -> Unit,
+    recoveryEnabled: Boolean = false,
+    onRecoveryHold: () -> Unit = {},
 ) {
     val state = viewModel.uiState
     val useComma = Locale.getDefault().language == "ru"
@@ -61,6 +63,8 @@ fun CalculatorScreen(
                 history = state.history,
                 useComma = useComma,
                 onClear = viewModel::clearHistory,
+                recoveryEnabled = recoveryEnabled && drawerState.isOpen && !drawerState.isAnimationRunning,
+                onRecoveryHold = onRecoveryHold,
             )
         },
     ) {

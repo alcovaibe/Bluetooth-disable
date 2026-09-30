@@ -96,4 +96,11 @@
     <string name="calendar_no_notes">No notes for this date.</string>
     <string name="calendar_storage_error">Unable to read or save notes. Please try again.</string>
     <string name="calendar_retry">Retry</string>
+    <string name="calculator_recovery_auth_title">Verify your identity</string>
+    <string name="calculator_recovery_auth_description">Confirm the device owner to reset the cover mode.</string>
+    <string name="calculator_recovery_title">Reset cover mode?</string>
+    <string name="calculator_recovery_description">Calculator Cover Mode will be disabled. The app will return to its default name and icon.</string>
+    <string name="calculator_recovery_reset">RESET</string>
+    <string name="calculator_recovery_auth_unavailable">Device authentication is unavailable. Check the device screen lock and try again.</string>
+    <string name="calculator_recovery_error">Unable to reset cover mode. Try again.</string>
 </resources>
