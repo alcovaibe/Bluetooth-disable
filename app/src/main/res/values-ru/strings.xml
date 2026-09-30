@@ -100,7 +100,7 @@
     <string name="calculator_recovery_auth_description">Для сброса режима маскировки подтвердите владельца устройства.</string>
     <string name="calculator_recovery_title">Сбросить режим маскировки?</string>
     <string name="calculator_recovery_description">Режим «Калькулятор» будет отключён. Приложение снова будет использовать стандартные название и значок.</string>
-    <string name="calculator_recovery_reset">Сбросить</string>
+    <string name="calculator_recovery_reset">СБРОСИТЬ</string>
     <string name="calculator_recovery_auth_unavailable">Системная проверка личности недоступна. Проверьте блокировку экрана устройства и попробуйте снова.</string>
     <string name="calculator_recovery_error">Не удалось сбросить режим маскировки. Повторите попытку.</string>
 </resources>
