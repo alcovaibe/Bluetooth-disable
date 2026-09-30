@@ -46,10 +46,26 @@ class CoverModeManager(context: Context) {
         transition(CoverMode.DEFAULT, style) {}
     }
 
+    /** Calculator-only recovery. History and calendar notes are deliberately untouched. */
+    fun resetCalculatorCover() {
+        check(activeMode() == CoverMode.CALCULATOR)
+        transition(CoverMode.DEFAULT, LauncherStyle.DEFAULT, verify = {
+            check(launcher.isExclusivelyEnabled(LauncherStyle.DEFAULT)) {
+                "Unable to restore default launcher"
+            }
+        }, cleanup = calculatorAccess::deleteKey) { calculatorAccess.clearVerifier() }
+    }
+
     /** The durable journal contains only ISO dates and opaque verifiers, never input secrets.
      * Previous keys are retained until the commit point so process death can roll back.
      */
-    private fun transition(mode: CoverMode, style: LauncherStyle, configure: () -> Unit) {
+    private fun transition(
+        mode: CoverMode,
+        style: LauncherStyle,
+        verify: () -> Unit = {},
+        cleanup: () -> Unit = ::clearInactiveAccess,
+        configure: () -> Unit,
+    ) {
         val snapshot = JSONObject().apply {
             put("mode", activeMode().name)
             put("style", launcher.selectedStyle().name)
@@ -61,13 +77,14 @@ class CoverModeManager(context: Context) {
         try {
             configure()
             launcher.setStyle(style)
+            verify()
             store.setActiveMode(mode)
             store.clearPending() // Commit point: everything needed by the new mode is durable.
         } catch (error: Exception) {
             restore(snapshot)
             throw error
         }
-        clearInactiveAccess()
+        cleanup()
     }
 
     fun resetToDefault() {

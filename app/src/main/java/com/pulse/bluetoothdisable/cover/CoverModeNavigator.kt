@@ -23,6 +23,16 @@ object CoverModeNavigator {
         )
     }
 
+    fun openDefaultMain(activity: Activity) {
+        check(CoverModeManager(activity).activeMode() == CoverMode.DEFAULT)
+        activity.startActivity(
+            Intent(activity, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            },
+        )
+        activity.finish()
+    }
+
     fun coverOrigin(context: Context, intent: Intent?): CoverMode? {
         val raw = intent?.getStringExtra(EXTRA_COVER_ORIGIN) ?: return null
         val mode = CoverMode.entries.firstOrNull { it.name == raw } ?: return null

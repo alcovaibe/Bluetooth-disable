@@ -6,6 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.SystemClock
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import com.pulse.bluetoothdisable.R
+import org.junit.Rule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso
@@ -30,6 +34,7 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class CoverModeNavigationInstrumentedTest {
+    @get:Rule val compose = createEmptyComposeRule()
     private lateinit var context: Context
     private lateinit var manager: CoverModeManager
 
@@ -111,6 +116,32 @@ class CoverModeNavigationInstrumentedTest {
             waitForIdle()
 
             assertFalse(resumedActivities().any { it is MainActivity })
+        }
+    }
+
+    @Test
+    fun calculatorEmergencyResetStartsDefaultMainAndBackCannotReturnToCalculator() {
+        manager.activateCalculator("58317")
+        val coverIntent = Intent(context, CalculatorCoverActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        ActivityScenario.launch<CalculatorCoverActivity>(coverIntent).use { scenario ->
+            scenario.onActivity { activity ->
+                val recovery = com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverRecoveryManager(
+                    manager::activeMode, manager::resetCalculatorCover,
+                )
+                recovery.authenticationSucceeded(recovery.begin()!!)
+                assertTrue(recovery.confirmReset())
+                CoverModeNavigator.openDefaultMain(activity)
+            }
+            val main = awaitResumedActivity(MainActivity::class.java)
+            assertNull(CoverModeNavigator.coverOrigin(main, main.intent))
+            compose.onNodeWithText(main.getString(R.string.action_hide_to_cover)).assertDoesNotExist()
+            assertTrue(LauncherIconController(context).isExclusivelyEnabled(LauncherStyle.DEFAULT))
+            assertFalse(resumedActivities().any { it is CalculatorCoverActivity })
+            Espresso.pressBackUnconditionally()
+            waitForIdle()
+            assertFalse(resumedActivities().any { it is CalculatorCoverActivity })
         }
     }
 

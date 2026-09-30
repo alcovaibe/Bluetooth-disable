@@ -27,6 +27,9 @@ class LauncherIconController(context: Context) {
 
     fun isHidden(): Boolean = LauncherStyle.values().none(::isEnabled)
 
+    fun isExclusivelyEnabled(style: LauncherStyle): Boolean =
+        LauncherStyle.entries.all { isEnabled(it) == (it == style) }
+
     fun selectedStyle(): LauncherStyle {
         val stored = storedStyle()
         if (isEnabled(stored)) return stored

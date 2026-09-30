@@ -5,15 +5,25 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.view.HapticFeedbackConstants
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.core.view.WindowCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.MainActivity
+import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
@@ -21,7 +31,11 @@ import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
-class CalculatorCoverActivity : ComponentActivity() {
+class CalculatorCoverActivity : FragmentActivity() {
+    private lateinit var recovery: CalculatorCoverRecoveryManager
+    private lateinit var authenticator: CalculatorDeviceAuthenticator
+    private var recoveryState by mutableStateOf(CalculatorCoverRecoveryManager.State.IDLE)
+    private var resumed by mutableStateOf(false)
     private lateinit var viewModel: CalculatorViewModel
 
     override fun attachBaseContext(newBase: Context) {
@@ -40,6 +54,13 @@ class CalculatorCoverActivity : ComponentActivity() {
             return
         }
 
+        val modes = CoverModeManager(this)
+        recovery = CalculatorCoverRecoveryManager(
+            activeMode = modes::activeMode,
+            resetCalculator = modes::resetCalculatorCover,
+            onStateChanged = { recoveryState = it },
+        )
+        authenticator = CalculatorDeviceAuthenticator(this)
         enableEdgeToEdge()
         configureNavigationBarSurface()
         viewModel = ViewModelProvider(this)[CalculatorViewModel::class.java]
@@ -63,17 +84,78 @@ class CalculatorCoverActivity : ComponentActivity() {
             BluetoothDisableTheme(darkTheme = darkTheme) {
                 CalculatorScreen(
                     viewModel = viewModel,
+                    recoveryEnabled = resumed && recoveryState == CalculatorCoverRecoveryManager.State.IDLE,
+                    onRecoveryHold = ::beginRecovery,
                     onUnlock = {
                         CoverModeNavigator.openMainFromCover(this, CoverMode.CALCULATOR)
                     },
                 )
+                if (recoveryState == CalculatorCoverRecoveryManager.State.CONFIRMING) {
+                    AlertDialog(
+                        onDismissRequest = recovery::cancel,
+                        title = { Text(stringResource(R.string.calculator_recovery_title)) },
+                        text = { Text(stringResource(R.string.calculator_recovery_description)) },
+                        dismissButton = {
+                            TextButton(onClick = recovery::cancel) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = ::resetCover) {
+                                Text(stringResource(R.string.calculator_recovery_reset))
+                            }
+                        },
+                    )
+                }
             }
         }
+    }
+
+    private fun beginRecovery() {
+        if (!resumed) return
+        val attempt = recovery.begin() ?: return
+        window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        val started = authenticator.authenticate { success ->
+            if (success) recovery.authenticationSucceeded(attempt)
+            else recovery.authenticationRejected(attempt)
+        }
+        if (!started) {
+            recovery.authenticationRejected(attempt)
+            Toast.makeText(this, R.string.calculator_recovery_auth_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun resetCover() {
+        try {
+            if (recovery.confirmReset()) CoverModeNavigator.openDefaultMain(this)
+        } catch (_: Exception) {
+            Toast.makeText(this, R.string.calculator_recovery_error, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        resumed = true
+    }
+
+    override fun onPause() {
+        resumed = false // Cancels a pointer timer even if Android did not send touch CANCEL.
+        if (::recovery.isInitialized && recovery.state == CalculatorCoverRecoveryManager.State.CONFIRMING) {
+            recovery.cancel()
+        }
+        super.onPause()
+    }
+
+    override fun onDestroy() {
+        if (::recovery.isInitialized) recovery.cancel()
+        if (::authenticator.isInitialized) authenticator.close()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (::recovery.isInitialized) recovery.cancel()
         if (::viewModel.isInitialized) {
             viewModel.clear()
         }

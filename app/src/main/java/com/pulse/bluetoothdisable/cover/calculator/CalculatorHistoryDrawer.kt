@@ -36,6 +36,8 @@ fun CalculatorHistoryDrawer(
     history: List<CalculatorHistoryEntry>,
     useComma: Boolean,
     onClear: () -> Unit,
+    recoveryEnabled: Boolean = false,
+    onRecoveryHold: () -> Unit = {},
 ) {
     ModalDrawerSheet(
         modifier = Modifier
@@ -55,6 +57,7 @@ fun CalculatorHistoryDrawer(
         ) {
             Text(
                 text = stringResource(R.string.calculator_history),
+                modifier = Modifier.historyRecoveryHold(recoveryEnabled, onRecoveryHold),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
