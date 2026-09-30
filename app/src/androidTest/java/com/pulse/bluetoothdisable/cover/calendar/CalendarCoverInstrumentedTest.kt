@@ -81,10 +81,15 @@ class CalendarCoverInstrumentedTest {
             compose.waitUntil(5_000) { compose.onAllNodesWithText("access note").fetchSemanticsNodes().isNotEmpty() }
             // Bring the entire card above the floating Add button before tapping
             // its upper-right control; scrolling only the icon can leave it covered.
-            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("access note"))
+            val firstNoteIndex = 2 + CalendarDates.monthCells(java.time.YearMonth.from(date)).size / 7
+            compose.onNode(hasScrollToIndexAction()).performScrollToIndex(firstNoteIndex)
             compose.onNodeWithText("Edit note").assertDoesNotExist()
             compose.onNodeWithText("Delete").assertDoesNotExist()
             compose.onNodeWithContentDescription("Show note actions").performClick()
+            scenario.onActivity {
+                assertFalse("The chevron must not open the Add/Edit note dialog",
+                    ViewModelProvider(it)[CalendarViewModel::class.java].uiState.editorOpen)
+            }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Edit note").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
             compose.onNodeWithText("Edit note").performScrollTo().assertIsDisplayed()
