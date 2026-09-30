@@ -48,11 +48,15 @@ class CalendarRecoveryGestureInstrumentedTest {
         compose.mainClock.advanceTimeBy(millis)
     }
 
-    @Test fun calendarAndTodayTextEachTriggerOnceAfterSevenSeconds() {
+    @Test fun calendarAndTodayTextEachTriggerOnceAfterSevenSecondsWithFingerDrift() {
         show()
         for ((index, word) in listOf("Calendar", "Today").withIndex()) {
             val node = compose.onNodeWithText(word, useUnmergedTree = true)
-            node.performTouchInput { down(center) }
+            node.performTouchInput {
+                down(center)
+                moveBy(Offset(10f, 6f))
+                moveBy(Offset(-4f, 3f))
+            }
             advanceHold(7_200)
             compose.waitUntil(2_000) { calls.get() == index + 1 }
             compose.mainClock.advanceTimeBy(3_000)
