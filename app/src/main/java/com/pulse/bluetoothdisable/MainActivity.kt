@@ -32,6 +32,8 @@ import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverConfirmationDi
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupDialog
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverConfirmationDialog
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverSetupActivity
+import com.pulse.bluetoothdisable.cover.notes.NotesCoverConfirmationDialog
+import com.pulse.bluetoothdisable.cover.notes.NotesCoverSetupActivity
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
@@ -55,6 +57,7 @@ class MainActivity : ComponentActivity() {
     private var openedFromCoverMode by mutableStateOf<CoverMode?>(null)
     private var showCalculatorCoverConfirmation by mutableStateOf(false)
     private var showCalendarCoverConfirmation by mutableStateOf(false)
+    private var showNotesCoverConfirmation by mutableStateOf(false)
     private var showCalculatorCoverSetup by mutableStateOf(false)
 
     private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -145,6 +148,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                if (showNotesCoverConfirmation) {
+                    NotesCoverConfirmationDialog(
+                        onContinue = {
+                            showNotesCoverConfirmation = false
+                            startActivity(Intent(this, NotesCoverSetupActivity::class.java))
+                        },
+                        onDismiss = { showNotesCoverConfirmation = false },
+                    )
+                }
+
                 if (showCalculatorCoverSetup) {
                     CalculatorCoverSetupDialog(
                         onComplete = ::completeCalculatorCoverSetup,
@@ -216,6 +229,10 @@ class MainActivity : ComponentActivity() {
         }
         if (style == LauncherStyle.CALENDAR) {
             showCalendarCoverConfirmation = true
+            return
+        }
+        if (style == LauncherStyle.NOTES) {
+            showNotesCoverConfirmation = true
             return
         }
         changeLauncherStyle(style)
@@ -294,7 +311,7 @@ private fun MainScreenPreview() {
             uiState = ProtectionUiState(
                 state = ProtectionState.PROTECTED,
             ),
-            appVersion = "1.0.6",
+            appVersion = "1.0.10",
             launcherIconHidden = false,
             selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,

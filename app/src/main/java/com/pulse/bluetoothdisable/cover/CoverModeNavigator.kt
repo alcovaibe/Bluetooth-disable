@@ -6,6 +6,7 @@ import android.content.Intent
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverActivity
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverActivity
+import com.pulse.bluetoothdisable.cover.notes.NotesCoverActivity
 
 object CoverModeNavigator {
     private const val EXTRA_COVER_ORIGIN =
@@ -54,8 +55,8 @@ object CoverModeNavigator {
     private fun coverActivityClass(mode: CoverMode): Class<out Activity>? = when (mode) {
         CoverMode.CALCULATOR -> CalculatorCoverActivity::class.java
         CoverMode.CALENDAR -> CalendarCoverActivity::class.java
+        CoverMode.NOTES -> NotesCoverActivity::class.java
         CoverMode.DEFAULT,
-        CoverMode.NOTES,
         CoverMode.GALLERY -> null
     }
 }

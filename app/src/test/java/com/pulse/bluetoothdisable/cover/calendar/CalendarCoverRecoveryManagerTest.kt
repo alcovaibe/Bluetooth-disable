@@ -11,11 +11,27 @@ class CalendarCoverRecoveryManagerTest {
     private fun manager() = CoverRecoveryManager({ mode }, { resets++; mode = CoverMode.DEFAULT }, modeToRecover = CoverMode.CALENDAR)
 
     @Test fun unsupportedRecoveryTargetsAreRejected() {
-        for (mode in listOf(CoverMode.DEFAULT, CoverMode.NOTES, CoverMode.GALLERY)) {
+        for (mode in listOf(CoverMode.DEFAULT, CoverMode.GALLERY)) {
             assertThrows(IllegalArgumentException::class.java) {
                 CoverRecoveryManager({ mode }, {}, modeToRecover = mode)
             }
         }
+    }
+
+    @Test fun notesRecoveryTargetIsSupported() {
+        var current = CoverMode.NOTES
+        var noteResets = 0
+        val recovery = CoverRecoveryManager(
+            { current },
+            { noteResets++; current = CoverMode.DEFAULT },
+            modeToRecover = CoverMode.NOTES,
+        )
+        val id = recovery.begin()
+        assertNotNull(id)
+        recovery.authenticationSucceeded(id!!)
+        assertTrue(recovery.confirmReset())
+        assertEquals(1, noteResets)
+        assertEquals(CoverMode.DEFAULT, current)
     }
 
     @Test fun cancelledOrFailedAuthenticationCannotReset() {
