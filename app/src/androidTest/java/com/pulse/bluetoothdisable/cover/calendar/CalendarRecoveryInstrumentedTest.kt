@@ -1,4 +1,4 @@
-package com.pulse.bluetoothdisable.cover.calculator
+package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.content.ContextWrapper
@@ -9,8 +9,9 @@ import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeStore
 import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
-import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
-import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodeManager
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorHistoryEntry
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorHistoryStore
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import java.time.LocalDate
@@ -22,17 +23,19 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class CalculatorRecoveryInstrumentedTest {
+class CalendarRecoveryInstrumentedTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val modes = CoverModeManager(context)
-    private val access = CalculatorAccessCodeManager(context)
+    private val access = CalendarAccessManager(context)
+    private val date = LocalDate.of(2012, 12, 12)
+    private val secret = "Private note"
     private val launcher = LauncherIconController(context)
     private val history = CalculatorHistoryStore(context)
 
     @Before fun before() {
         modes.resetToDefault()
         history.clear()
-        modes.activateCalculator("58317")
+        modes.activateCalendar(date, secret)
         history.add("1+1", "2")
     }
     @After fun after() { modes.resetToDefault(); history.clear() }
@@ -40,21 +43,21 @@ class CalculatorRecoveryInstrumentedTest {
     @Test fun authenticatedConfirmedRecoveryRestoresSingleDefaultAliasAndKeepsNotesAndHistory() {
         val notes = LocalCalendarNotesRepository(context)
         val note = notes.save(LocalDate.of(2024, 2, 29), "Regular note")
-        val recovery = CoverRecoveryManager(modes::activeMode, modes::resetCalculatorCover)
+        val recovery = CoverRecoveryManager(modes::activeMode, modes::resetCalendarCover, modeToRecover = CoverMode.CALENDAR)
         recovery.authenticationSucceeded(recovery.begin()!!)
         assertTrue(recovery.confirmReset())
         assertEquals(CoverMode.DEFAULT, modes.activeMode())
         assertTrue(launcher.isExclusivelyEnabled(LauncherStyle.DEFAULT))
-        assertFalse(access.hasCode())
-        assertFalse(access.verify("58317"))
-        assertTrue(context.getSharedPreferences(CalculatorAccessCodeManager.PREFERENCES_NAME, 0).all.isEmpty())
+        assertFalse(access.hasRule())
+        assertFalse(access.verify(date, secret))
+        assertTrue(context.getSharedPreferences(CalendarAccessManager.PREFERENCES_NAME, 0).all.isEmpty())
         assertEquals(listOf(CalculatorHistoryEntry("1+1", "2")), history.entries())
         assertEquals(note, notes.notes().single())
     }
 
     @Test fun cancelledAuthenticationFailedAuthenticationAndCancelledConfirmationKeepAllState() {
         repeat(3) { step ->
-            val recovery = CoverRecoveryManager(modes::activeMode, modes::resetCalculatorCover)
+            val recovery = CoverRecoveryManager(modes::activeMode, modes::resetCalendarCover, modeToRecover = CoverMode.CALENDAR)
             val id = recovery.begin()!!
             when (step) {
                 0 -> recovery.cancel()
@@ -62,7 +65,7 @@ class CalculatorRecoveryInstrumentedTest {
                 2 -> { recovery.authenticationSucceeded(id); recovery.cancel() }
             }
             assertFalse(recovery.confirmReset())
-            assertCalculatorIntact()
+            assertCalendarIntact()
         }
     }
 
@@ -70,37 +73,37 @@ class CalculatorRecoveryInstrumentedTest {
         // Fail the mode write after the real aliases have switched and verifier was removed.
         val failing = FailingPreferencesContext(context, CoverModeStore.PREFERENCES_NAME, 2)
         assertThrows(IllegalStateException::class.java) {
-            CoverModeManager(failing).resetCalculatorCover()
+            CoverModeManager(failing).resetCalendarCover()
         }
-        assertCalculatorIntact()
+        assertCalendarIntact()
         assertNull(CoverModeStore(context).pendingMode())
     }
 
-    @Test fun failedVerifierRemovalRestoresCalculator() {
-        assertResetRollsBack(CalculatorAccessCodeManager.PREFERENCES_NAME, 1)
+    @Test fun failedVerifierRemovalRestoresCalendar() {
+        assertResetRollsBack(CalendarAccessManager.PREFERENCES_NAME, 1)
     }
 
-    @Test fun failedLauncherPreferenceWriteRestoresCalculator() {
+    @Test fun failedLauncherPreferenceWriteRestoresCalendar() {
         assertResetRollsBack(LauncherIconController.PREFERENCES_NAME, 1)
     }
 
-    @Test fun failedJournalCommitRestoresCalculatorAfterAliasesAndModeChanged() {
+    @Test fun failedJournalCommitRestoresCalendarAfterAliasesAndModeChanged() {
         assertResetRollsBack(CoverModeStore.PREFERENCES_NAME, 3)
     }
 
     private fun assertResetRollsBack(preferencesName: String, failCommit: Int) {
         assertThrows(IllegalStateException::class.java) {
             CoverModeManager(FailingPreferencesContext(context, preferencesName, failCommit))
-                .resetCalculatorCover()
+                .resetCalendarCover()
         }
-        assertCalculatorIntact()
+        assertCalendarIntact()
         assertNull(CoverModeStore(context).pendingMode())
     }
 
-    @Test fun interruptedResetJournalRestoresPreviousCalculatorConfiguration() {
+    @Test fun interruptedResetJournalRestoresPreviousCalendarConfiguration() {
         val snapshot = JSONObject().apply {
-            put("mode", CoverMode.CALCULATOR.name)
-            put("style", LauncherStyle.CALCULATOR.name)
+            put("mode", CoverMode.CALENDAR.name)
+            put("style", LauncherStyle.CALENDAR.name)
             put("hidden", false)
             put("calculator", JSONObject(context.getSharedPreferences(CalculatorAccessCodeManager.PREFERENCES_NAME, 0).all))
             put("calendar", JSONObject(context.getSharedPreferences(CalendarAccessManager.PREFERENCES_NAME, 0).all))
@@ -112,23 +115,22 @@ class CalculatorRecoveryInstrumentedTest {
         store.setActiveMode(CoverMode.DEFAULT)
         // Simulate process death before the journal's commit point.
         CoverModeManager(context).recoverInterruptedSetup()
-        assertCalculatorIntact()
+        assertCalendarIntact()
         assertNull(store.pendingMode())
     }
 
-    @Test fun resetRejectsCalendarAndPreservesItsRule() {
-        val date = LocalDate.of(2012, 12, 12)
-        modes.activateCalendar(date, "Private note")
-        assertThrows(IllegalStateException::class.java) { modes.resetCalculatorCover() }
-        assertEquals(CoverMode.CALENDAR, modes.activeMode())
-        assertTrue(launcher.isExclusivelyEnabled(LauncherStyle.CALENDAR))
-        assertTrue(CalendarAccessManager(context).verify(date, "Private note"))
-    }
-
-    private fun assertCalculatorIntact() {
+    @Test fun resetRejectsCalculatorAndPreservesItsCode() {
+        modes.activateCalculator("58317")
+        assertThrows(IllegalStateException::class.java) { modes.resetCalendarCover() }
         assertEquals(CoverMode.CALCULATOR, modes.activeMode())
         assertTrue(launcher.isExclusivelyEnabled(LauncherStyle.CALCULATOR))
-        assertTrue(access.verify("58317"))
+        assertTrue(CalculatorAccessCodeManager(context).verify("58317"))
+    }
+
+    private fun assertCalendarIntact() {
+        assertEquals(CoverMode.CALENDAR, modes.activeMode())
+        assertTrue(launcher.isExclusivelyEnabled(LauncherStyle.CALENDAR))
+        assertTrue(access.verify(date, secret))
         assertEquals(listOf(CalculatorHistoryEntry("1+1", "2")), history.entries())
     }
 

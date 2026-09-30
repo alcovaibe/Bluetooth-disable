@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulse.bluetoothdisable.R
+import com.pulse.bluetoothdisable.cover.coverRecoveryHold
 
 private const val HISTORY_SINGLE_LINE_CHARACTER_LIMIT = 24
 
@@ -54,7 +55,7 @@ fun CalculatorHistoryDrawer(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .statusBarsPadding()
                 .testTag("calculator_history_header")
-                .historyRecoveryHold(recoveryEnabled, onRecoveryHold)
+                .coverRecoveryHold(recoveryEnabled, onRecoveryHold)
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             contentAlignment = Alignment.CenterStart,
         ) {

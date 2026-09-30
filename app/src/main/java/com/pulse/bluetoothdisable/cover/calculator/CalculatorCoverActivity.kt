@@ -24,17 +24,19 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.R
+import com.pulse.bluetoothdisable.cover.CoverDeviceAuthenticator
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
+import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 class CalculatorCoverActivity : FragmentActivity() {
-    private lateinit var recovery: CalculatorCoverRecoveryManager
-    private lateinit var authenticator: CalculatorDeviceAuthenticator
-    private var recoveryState by mutableStateOf(CalculatorCoverRecoveryManager.State.IDLE)
+    private lateinit var recovery: CoverRecoveryManager
+    private lateinit var authenticator: CoverDeviceAuthenticator
+    private var recoveryState by mutableStateOf(CoverRecoveryManager.State.IDLE)
     private var resumed by mutableStateOf(false)
     private lateinit var viewModel: CalculatorViewModel
 
@@ -55,12 +57,12 @@ class CalculatorCoverActivity : FragmentActivity() {
         }
 
         val modes = CoverModeManager(this)
-        recovery = CalculatorCoverRecoveryManager(
+        recovery = CoverRecoveryManager(
             activeMode = modes::activeMode,
-            resetCalculator = modes::resetCalculatorCover,
+            resetCover = modes::resetCalculatorCover,
             onStateChanged = { recoveryState = it },
         )
-        authenticator = CalculatorDeviceAuthenticator(this)
+        authenticator = CoverDeviceAuthenticator(this)
         enableEdgeToEdge()
         configureNavigationBarSurface()
         viewModel = ViewModelProvider(this)[CalculatorViewModel::class.java]
@@ -84,16 +86,16 @@ class CalculatorCoverActivity : FragmentActivity() {
             BluetoothDisableTheme(darkTheme = darkTheme) {
                 CalculatorScreen(
                     viewModel = viewModel,
-                    recoveryEnabled = resumed && recoveryState == CalculatorCoverRecoveryManager.State.IDLE,
+                    recoveryEnabled = resumed && recoveryState == CoverRecoveryManager.State.IDLE,
                     onRecoveryHold = ::beginRecovery,
                     onUnlock = {
                         CoverModeNavigator.openMainFromCover(this, CoverMode.CALCULATOR)
                     },
                 )
-                if (recoveryState == CalculatorCoverRecoveryManager.State.CONFIRMING) {
+                if (recoveryState == CoverRecoveryManager.State.CONFIRMING) {
                     AlertDialog(
                         onDismissRequest = recovery::cancel,
-                        title = { Text(stringResource(R.string.calculator_recovery_title)) },
+                        title = { Text(stringResource(R.string.cover_recovery_title)) },
                         text = { Text(stringResource(R.string.calculator_recovery_description)) },
                         dismissButton = {
                             TextButton(onClick = recovery::cancel) {
@@ -102,7 +104,7 @@ class CalculatorCoverActivity : FragmentActivity() {
                         },
                         confirmButton = {
                             TextButton(onClick = ::resetCover) {
-                                Text(stringResource(R.string.calculator_recovery_reset))
+                                Text(stringResource(R.string.cover_recovery_reset))
                             }
                         },
                     )
@@ -121,7 +123,7 @@ class CalculatorCoverActivity : FragmentActivity() {
         }
         if (!started) {
             recovery.authenticationRejected(attempt)
-            Toast.makeText(this, R.string.calculator_recovery_auth_unavailable, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.cover_recovery_auth_unavailable, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -129,7 +131,7 @@ class CalculatorCoverActivity : FragmentActivity() {
         try {
             if (recovery.confirmReset()) CoverModeNavigator.openDefaultMain(this)
         } catch (_: Exception) {
-            Toast.makeText(this, R.string.calculator_recovery_error, Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.cover_recovery_error, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -140,7 +142,7 @@ class CalculatorCoverActivity : FragmentActivity() {
 
     override fun onPause() {
         resumed = false // Cancels a pointer timer even if Android did not send touch CANCEL.
-        if (::recovery.isInitialized && recovery.state == CalculatorCoverRecoveryManager.State.CONFIRMING) {
+        if (::recovery.isInitialized && recovery.state == CoverRecoveryManager.State.CONFIRMING) {
             recovery.cancel()
         }
         super.onPause()

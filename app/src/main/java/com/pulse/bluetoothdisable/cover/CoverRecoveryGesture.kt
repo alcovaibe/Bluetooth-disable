@@ -1,4 +1,4 @@
-package com.pulse.bluetoothdisable.cover.calculator
+package com.pulse.bluetoothdisable.cover
 
 import android.os.SystemClock
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -12,9 +12,9 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Attached to the history header bounds only. No click, long-click or recovery semantics. */
+/** Attached only to the chosen recovery target bounds. No click, long-click or recovery semantics. */
 @Composable
-internal fun Modifier.historyRecoveryHold(enabled: Boolean, onHold: () -> Unit): Modifier {
+internal fun Modifier.coverRecoveryHold(enabled: Boolean, onHold: () -> Unit): Modifier {
     val currentOnHold = rememberUpdatedState(onHold)
     return pointerInput(enabled) {
         if (!enabled) return@pointerInput

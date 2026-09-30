@@ -1,4 +1,4 @@
-package com.pulse.bluetoothdisable.cover.calculator
+package com.pulse.bluetoothdisable.cover
 
 /** Monotonic timestamps; each pointer sequence has its own one-shot deadline. */
 class ContinuousHoldTracker {

@@ -1,4 +1,4 @@
-package com.pulse.bluetoothdisable.cover.calculator
+package com.pulse.bluetoothdisable.cover
 
 import android.os.Build
 import androidx.biometric.BiometricManager
@@ -8,7 +8,7 @@ import androidx.fragment.app.FragmentActivity
 import com.pulse.bluetoothdisable.R
 
 /** One lifecycle-bound system prompt; no device credentials or auth results are persisted. */
-internal class CalculatorDeviceAuthenticator(private val activity: FragmentActivity) {
+internal class CoverDeviceAuthenticator(private val activity: FragmentActivity) {
     private var completion: ((Boolean) -> Unit)? = null
     private var rejected = false
     private var closed = false
@@ -50,8 +50,8 @@ internal class CalculatorDeviceAuthenticator(private val activity: FragmentActiv
         return try {
             prompt.authenticate(
                 BiometricPrompt.PromptInfo.Builder()
-                    .setTitle(activity.getString(R.string.calculator_recovery_auth_title))
-                    .setDescription(activity.getString(R.string.calculator_recovery_auth_description))
+                    .setTitle(activity.getString(R.string.cover_recovery_auth_title))
+                    .setDescription(activity.getString(R.string.cover_recovery_auth_description))
                     .setAllowedAuthenticators(authenticators)
                     .build(),
             )
