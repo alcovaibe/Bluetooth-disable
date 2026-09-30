@@ -110,6 +110,21 @@
             android:theme="@style/Theme.BluetoothDisable"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".cover.gallery.GalleryCoverActivity"
+            android:exported="false"
+            android:label="@string/launcher_name_gallery"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BluetoothDisable" />
+
+        <activity
+            android:name=".cover.gallery.GalleryCoverSetupActivity"
+            android:exported="false"
+            android:label="@string/gallery_setup_title"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.BluetoothDisable" />
+
         <activity-alias
             android:name=".LauncherAlias"
             android:enabled="true"
@@ -173,7 +188,7 @@
             android:icon="@drawable/gallery_icon"
             android:label="@string/launcher_name_gallery"
             android:roundIcon="@drawable/gallery_icon"
-            android:targetActivity=".MainActivity">
+            android:targetActivity=".cover.gallery.GalleryCoverActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
