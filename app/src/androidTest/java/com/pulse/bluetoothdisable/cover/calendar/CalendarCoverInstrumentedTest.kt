@@ -79,9 +79,14 @@ class CalendarCoverInstrumentedTest {
         ActivityScenario.launch<CalendarCoverActivity>(Intent(context, CalendarCoverActivity::class.java)).use { scenario ->
             scenario.onActivity { ViewModelProvider(it)[CalendarViewModel::class.java].select(date) }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("access note").fetchSemanticsNodes().isNotEmpty() }
+            // Bring the entire card above the floating Add button before tapping
+            // its upper-right control; scrolling only the icon can leave it covered.
+            compose.onNode(hasScrollToIndexAction()).performScrollToNode(hasText("access note"))
             compose.onNodeWithText("Edit note").assertDoesNotExist()
             compose.onNodeWithText("Delete").assertDoesNotExist()
-            compose.onNodeWithContentDescription("Show note actions").performScrollTo().performClick()
+            compose.onNodeWithContentDescription("Show note actions").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("Edit note").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
             compose.onNodeWithText("Edit note").performScrollTo().assertIsDisplayed()
             compose.onNodeWithText("Delete").performScrollTo().assertIsDisplayed()
             val edit = compose.onNodeWithText("Edit note").fetchSemanticsNode().boundsInRoot
@@ -124,7 +129,7 @@ class CalendarCoverInstrumentedTest {
             capturePreview("calendar-setup-date-chevron.png")
             compose.onNodeWithTag("calendar_access_date_picker").performClick()
             compose.onNode(isDialog()).assertExists()
-            compose.onNodeWithText("CANCEL").performClick()
+            compose.onNode(hasText("CANCEL") and hasAnyAncestor(isDialog())).performClick()
             assertEquals(CoverMode.DEFAULT, manager.activeMode())
         }
     }
