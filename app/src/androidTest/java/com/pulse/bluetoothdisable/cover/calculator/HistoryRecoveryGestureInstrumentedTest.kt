@@ -31,15 +31,22 @@ class HistoryRecoveryGestureInstrumentedTest {
                     enabled.value, { calls.incrementAndGet() })
             }
         }
+        compose.waitForIdle()
+        compose.mainClock.autoAdvance = false
     }
     private fun title() = compose.onNodeWithText(context.getString(R.string.calculator_history))
 
     @Test fun sevenSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
         showHistory()
         title().performTouchInput { down(center) }
+        compose.mainClock.advanceTimeByFrame()
+        // The pointer coroutine uses Compose's virtual clock, while the monotonic
+        // deadline uses Android uptime. Advance both; sleeping alone freezes delay().
         SystemClock.sleep(7_200)
+        compose.mainClock.advanceTimeBy(7_200)
         compose.waitUntil(2_000) { calls.get() == 1 }
         SystemClock.sleep(3_000)
+        compose.mainClock.advanceTimeBy(3_000)
         assertEquals(1, calls.get())
         title().performTouchInput { up() }
     }
@@ -49,12 +56,16 @@ class HistoryRecoveryGestureInstrumentedTest {
         repeat(2) {
             title().performTouchInput { down(center) }
             SystemClock.sleep(100)
+            compose.mainClock.advanceTimeBy(100)
             title().performTouchInput { up() }
         }
         title().performTouchInput { down(center); moveTo(center.copy(x = -100f)); up() }
         title().performTouchInput { down(center) }
         compose.runOnIdle { enabled.value = false }
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
         SystemClock.sleep(7_200)
+        compose.mainClock.advanceTimeBy(7_200)
         title().performTouchInput { up() }
         assertEquals(0, calls.get())
         compose.onNodeWithText(context.getString(R.string.calculator_clear_history)).performClick()
