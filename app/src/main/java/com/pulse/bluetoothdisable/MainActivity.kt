@@ -32,6 +32,8 @@ import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverConfirmationDi
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupDialog
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverConfirmationDialog
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverSetupActivity
+import com.pulse.bluetoothdisable.cover.gallery.GalleryCoverConfirmationDialog
+import com.pulse.bluetoothdisable.cover.gallery.GalleryCoverSetupActivity
 import com.pulse.bluetoothdisable.cover.notes.NotesCoverConfirmationDialog
 import com.pulse.bluetoothdisable.cover.notes.NotesCoverSetupActivity
 import com.pulse.bluetoothdisable.domain.ProtectionState
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
     private var showCalculatorCoverConfirmation by mutableStateOf(false)
     private var showCalendarCoverConfirmation by mutableStateOf(false)
     private var showNotesCoverConfirmation by mutableStateOf(false)
+    private var showGalleryCoverConfirmation by mutableStateOf(false)
     private var showCalculatorCoverSetup by mutableStateOf(false)
 
     private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -158,6 +161,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                if (showGalleryCoverConfirmation) {
+                    GalleryCoverConfirmationDialog(
+                        onContinue = {
+                            showGalleryCoverConfirmation = false
+                            startActivity(Intent(this, GalleryCoverSetupActivity::class.java))
+                        },
+                        onDismiss = { showGalleryCoverConfirmation = false },
+                    )
+                }
+
                 if (showCalculatorCoverSetup) {
                     CalculatorCoverSetupDialog(
                         onComplete = ::completeCalculatorCoverSetup,
@@ -233,6 +246,10 @@ class MainActivity : ComponentActivity() {
         }
         if (style == LauncherStyle.NOTES) {
             showNotesCoverConfirmation = true
+            return
+        }
+        if (style == LauncherStyle.GALLERY) {
+            showGalleryCoverConfirmation = true
             return
         }
         changeLauncherStyle(style)
@@ -311,7 +328,7 @@ private fun MainScreenPreview() {
             uiState = ProtectionUiState(
                 state = ProtectionState.PROTECTED,
             ),
-            appVersion = "1.0.10",
+            appVersion = "1.0.11",
             launcherIconHidden = false,
             selectedLauncherStyle = LauncherStyle.DEFAULT,
             tileAdded = false,

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gallery_cover_confirm_title">Gallery mode</string>
+    <string name="gallery_cover_confirm_message">The app will appear and launch as a local gallery. You will choose one local photo and a hidden three-tap sequence to open the main screen.</string>
+    <string name="gallery_setup_title">Set up Gallery mode</string>
+    <string name="gallery_setup_pick_secret">Add photos if needed, then choose the photo that will contain the hidden three-tap access sequence.</string>
+    <string name="gallery_setup_completed">Gallery mode enabled</string>
+    <string name="gallery_setup_failed">Gallery mode could not be enabled. Nothing was changed.</string>
+    <string name="gallery_add_photos">Add photos</string>
+    <string name="gallery_empty">No photos</string>
+    <string name="gallery_storage_error">Gallery storage could not be read or updated.</string>
+    <string name="gallery_sequence_first_instruction">Tap three different zones in the order you want to use: four corners and the center. A zone cannot be repeated.</string>
+    <string name="gallery_sequence_confirm_instruction">Repeat the same three-zone sequence to confirm it.</string>
+    <string name="gallery_sequence_progress">Selected: %1$d/%2$d</string>
+    <string name="gallery_sequence_mismatch">The sequences do not match. Enter the confirmation sequence again.</string>
+    <string name="gallery_sequence_clear">Clear</string>
+    <string name="gallery_back">Back</string>
+    <string name="gallery_finish_setup">Enable Gallery mode</string>
+    <string name="gallery_favorite">Favorite</string>
+    <string name="gallery_edit">Edit</string>
+    <string name="gallery_info">Info</string>
+    <string name="gallery_color_space">Color space: %1$s</string>
+    <string name="gallery_delete">Delete</string>
+    <string name="gallery_delete_title">Delete photo?</string>
+    <string name="gallery_delete_message">Only the private Gallery copy will be deleted. The original selected through the system photo picker is not changed.</string>
+    <string name="gallery_rotate_left">Rotate left</string>
+    <string name="gallery_rotate_right">Rotate right</string>
+    <string name="gallery_crop_square">Center crop 1:1</string>
+    <string name="gallery_close">Close</string>
+    <string name="gallery_recovery_description">Reset Gallery disguise and restore the normal app launcher? Local Gallery photos, favorites and metadata will be kept.</string>
+</resources>

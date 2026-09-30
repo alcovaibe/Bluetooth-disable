@@ -10,7 +10,14 @@ class CoverRecoveryManager(
     private val modeToRecover: CoverMode = CoverMode.CALCULATOR,
 ) {
     init {
-        require(modeToRecover in setOf(CoverMode.CALCULATOR, CoverMode.CALENDAR, CoverMode.NOTES))
+        require(
+            modeToRecover in setOf(
+                CoverMode.CALCULATOR,
+                CoverMode.CALENDAR,
+                CoverMode.NOTES,
+                CoverMode.GALLERY,
+            ),
+        )
     }
 
     enum class State { IDLE, AUTHENTICATING, CONFIRMING, RESETTING }

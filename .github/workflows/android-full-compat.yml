@@ -1,7 +1,9 @@
-name: Android CI (PR)
+name: Android Full Compatibility
 
 on:
-  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 29, 33, 36]
+        api-level: [26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,7 +66,7 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Verify cover modes on Android
+      - name: Verify full Android compatibility
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
@@ -79,7 +81,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: android-tests-api-${{ matrix.api-level }}
+          name: android-full-tests-api-${{ matrix.api-level }}
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/

@@ -6,6 +6,7 @@ import android.content.Intent
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverActivity
 import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverActivity
+import com.pulse.bluetoothdisable.cover.gallery.GalleryCoverActivity
 import com.pulse.bluetoothdisable.cover.notes.NotesCoverActivity
 
 object CoverModeNavigator {
@@ -56,7 +57,7 @@ object CoverModeNavigator {
         CoverMode.CALCULATOR -> CalculatorCoverActivity::class.java
         CoverMode.CALENDAR -> CalendarCoverActivity::class.java
         CoverMode.NOTES -> NotesCoverActivity::class.java
-        CoverMode.DEFAULT,
-        CoverMode.GALLERY -> null
+        CoverMode.GALLERY -> GalleryCoverActivity::class.java
+        CoverMode.DEFAULT -> null
     }
 }

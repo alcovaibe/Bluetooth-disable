@@ -1,9 +1,7 @@
 package com.pulse.bluetoothdisable.cover.calendar
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
@@ -47,10 +45,8 @@ class CalendarCoverInstrumentedTest {
     }
     @After fun after() { manager.resetToDefault() }
 
-    @Test fun galleryIconAndNameChoicePersistsAfterRestart() {
+    @Test fun galleryChoiceStartsSetupWithoutChangingExistingCover() {
         val controller = LauncherIconController(context)
-        val style = LauncherStyle.GALLERY
-        val label = "Gallery"
         manager.activateCalculator("58317")
         ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use {
             compose.onNodeWithText("CHANGE ICON").performScrollTo().performClick()
@@ -58,18 +54,13 @@ class CalendarCoverInstrumentedTest {
                 compose.onNodeWithText(option).performScrollTo().assertIsDisplayed()
             }
             capturePreview("restored-cover-options.png")
-            compose.onNodeWithText(label).performScrollTo().performClick()
-            compose.waitUntil(5_000) { controller.isExclusivelyEnabled(style) && isMainResumed() }
-            assertEquals(CoverMode.DEFAULT, manager.activeMode())
-            assertFalse(CalculatorAccessCodeManager(context).hasCode())
-            CoverModeManager(context).recoverInterruptedSetup()
-            assertEquals(style, controller.selectedStyle())
-            assertTrue(controller.isExclusivelyEnabled(style))
-            val alias = ComponentName(context, "${context.packageName}.LauncherAlias${label}")
-            val info = context.packageManager.getActivityInfo(alias, PackageManager.MATCH_DISABLED_COMPONENTS)
-            assertEquals(MainActivity::class.java.name, info.targetActivity)
-            assertEquals(label, info.loadLabel(context.packageManager).toString())
-            assertTrue(info.icon != 0)
+            compose.onNodeWithText("Gallery").performScrollTo().performClick()
+            compose.onNodeWithText("Gallery mode").assertIsDisplayed()
+            assertEquals(CoverMode.CALCULATOR, manager.activeMode())
+            assertEquals(LauncherStyle.CALCULATOR, controller.selectedStyle())
+            assertTrue(CalculatorAccessCodeManager(context).verify("58317"))
+            compose.onNodeWithText("CANCEL").performClick()
+            assertEquals(CoverMode.CALCULATOR, manager.activeMode())
         }
     }
 
