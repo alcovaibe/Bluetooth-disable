@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.*
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
@@ -100,7 +101,8 @@ class CalendarCoverInstrumentedTest {
             assertFalse(isMainResumed())
             capturePreview("calendar-note-actions-expanded.png")
             compose.onNodeWithText("Edit note").performClick()
-            compose.onNodeWithTag("calendar_note_text").assertTextEquals("access note")
+            assertEquals("access note", compose.onNodeWithTag("calendar_note_text")
+                .fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
             assertFalse(isMainResumed())
             compose.onNodeWithText("CANCEL").performClick()
             compose.onNodeWithContentDescription("Hide note actions").performClick()
