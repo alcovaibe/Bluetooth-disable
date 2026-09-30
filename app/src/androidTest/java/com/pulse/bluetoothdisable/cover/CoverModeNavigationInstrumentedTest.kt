@@ -14,6 +14,7 @@ import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverActivity
+import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverActivity
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import java.util.concurrent.atomic.AtomicReference
@@ -52,6 +53,10 @@ class CoverModeNavigationInstrumentedTest {
         assertEquals(
             CalculatorCoverActivity::class.java.name,
             aliasTarget(".LauncherAliasCalculator"),
+        )
+        assertEquals(
+            CalendarCoverActivity::class.java.name,
+            aliasTarget(".LauncherAliasCalendar"),
         )
     }
 

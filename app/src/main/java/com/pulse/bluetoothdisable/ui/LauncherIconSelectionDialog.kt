@@ -98,22 +98,10 @@ fun LauncherIconSelectionDialog(
                         onClick = { onStyleSelected(LauncherStyle.CALCULATOR) },
                     )
                     LauncherOptionCard(
-                        style = LauncherStyle.NOTES,
-                        selected = selectedStyle == LauncherStyle.NOTES,
-                        label = stringResource(R.string.launcher_name_notes),
-                        onClick = { onStyleSelected(LauncherStyle.NOTES) },
-                    )
-                    LauncherOptionCard(
                         style = LauncherStyle.CALENDAR,
                         selected = selectedStyle == LauncherStyle.CALENDAR,
                         label = stringResource(R.string.launcher_name_calendar),
                         onClick = { onStyleSelected(LauncherStyle.CALENDAR) },
-                    )
-                    LauncherOptionCard(
-                        style = LauncherStyle.GALLERY,
-                        selected = selectedStyle == LauncherStyle.GALLERY,
-                        label = stringResource(R.string.launcher_name_gallery),
-                        onClick = { onStyleSelected(LauncherStyle.GALLERY) },
                     )
 
                     Row(

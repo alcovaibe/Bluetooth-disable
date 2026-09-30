@@ -30,6 +30,8 @@ import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverConfirmationDialog
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorCoverSetupDialog
+import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverConfirmationDialog
+import com.pulse.bluetoothdisable.cover.calendar.CalendarCoverSetupActivity
 import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
@@ -52,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private var selectedTheme by mutableStateOf<String?>(null)
     private var openedFromCoverMode by mutableStateOf<CoverMode?>(null)
     private var showCalculatorCoverConfirmation by mutableStateOf(false)
+    private var showCalendarCoverConfirmation by mutableStateOf(false)
     private var showCalculatorCoverSetup by mutableStateOf(false)
 
     private val tileStateListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -132,6 +135,16 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                if (showCalendarCoverConfirmation) {
+                    CalendarCoverConfirmationDialog(
+                        onContinue = {
+                            showCalendarCoverConfirmation = false
+                            startActivity(Intent(this, CalendarCoverSetupActivity::class.java))
+                        },
+                        onDismiss = { showCalendarCoverConfirmation = false },
+                    )
+                }
+
                 if (showCalculatorCoverSetup) {
                     CalculatorCoverSetupDialog(
                         onComplete = ::completeCalculatorCoverSetup,
@@ -201,6 +214,11 @@ class MainActivity : ComponentActivity() {
             showCalculatorCoverConfirmation = true
             return
         }
+        if (style == LauncherStyle.CALENDAR) {
+            showCalendarCoverConfirmation = true
+            return
+        }
+        if (style == LauncherStyle.NOTES || style == LauncherStyle.GALLERY) return
         changeLauncherStyle(style)
     }
 

@@ -2,44 +2,78 @@ package com.pulse.bluetoothdisable.cover
 
 import android.content.Context
 import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodeManager
+import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessManager
+import com.pulse.bluetoothdisable.cover.calendar.CalendarAccessPolicy
+import com.pulse.bluetoothdisable.cover.calendar.CalendarDates
+import com.pulse.bluetoothdisable.cover.calendar.LocalCalendarNotesRepository
+import com.pulse.bluetoothdisable.cover.calculator.CalculatorAccessCodePolicy
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
+import java.time.LocalDate
+import org.json.JSONObject
 
 class CoverModeManager(context: Context) {
     private val appContext = context.applicationContext
     private val store = CoverModeStore(appContext)
     private val launcher = LauncherIconController(appContext)
-    private val accessCodeManager = CalculatorAccessCodeManager(appContext)
+    private val calculatorAccess = CalculatorAccessCodeManager(appContext)
+    private val calendarAccess = CalendarAccessManager(appContext)
 
     fun activeMode(): CoverMode = store.activeMode()
 
     fun isCalculatorReady(): Boolean =
-        store.activeMode() == CoverMode.CALCULATOR &&
-            launcher.selectedStyle() == LauncherStyle.CALCULATOR &&
-            accessCodeManager.hasCode()
+        activeMode() == CoverMode.CALCULATOR &&
+            launcher.selectedStyle() == LauncherStyle.CALCULATOR && calculatorAccess.hasCode()
+
+    fun isCalendarReady(): Boolean =
+        activeMode() == CoverMode.CALENDAR &&
+            launcher.selectedStyle() == LauncherStyle.CALENDAR && calendarAccess.hasRule()
 
     fun activateCalculator(code: String) {
-        store.markPending(CoverMode.CALCULATOR)
-        try {
-            accessCodeManager.setCode(code)
-            launcher.setStyle(LauncherStyle.CALCULATOR)
-            store.setActiveMode(CoverMode.CALCULATOR)
-            store.clearPending()
-        } catch (error: Exception) {
-            resetToDefault()
-            throw error
+        require(CalculatorAccessCodePolicy.isValid(code))
+        transition(CoverMode.CALCULATOR, LauncherStyle.CALCULATOR) { calculatorAccess.setCode(code) }
+    }
+
+    fun activateCalendar(date: LocalDate, text: String) {
+        require(CalendarAccessPolicy.isValid(text) && date.year in CalendarDates.YEAR_RANGE)
+        transition(CoverMode.CALENDAR, LauncherStyle.CALENDAR) {
+            calendarAccess.setAccessRule(date, text)
         }
     }
 
     fun deactivateToLauncher(style: LauncherStyle) {
-        accessCodeManager.clearCode()
-        store.setActiveMode(CoverMode.DEFAULT)
-        store.clearPending()
-        launcher.setStyle(style)
+        require(style == LauncherStyle.DEFAULT)
+        transition(CoverMode.DEFAULT, style) {}
+    }
+
+    /** The durable journal contains only ISO dates and opaque verifiers, never input secrets.
+     * Previous keys are retained until the commit point so process death can roll back.
+     */
+    private fun transition(mode: CoverMode, style: LauncherStyle, configure: () -> Unit) {
+        val snapshot = JSONObject().apply {
+            put("mode", activeMode().name)
+            put("style", launcher.selectedStyle().name)
+            put("hidden", launcher.isHidden())
+            put("calculator", accessSnapshot(CalculatorAccessCodeManager.PREFERENCES_NAME))
+            put("calendar", accessSnapshot(CalendarAccessManager.PREFERENCES_NAME))
+        }
+        store.beginTransition(mode, snapshot)
+        try {
+            configure()
+            launcher.setStyle(style)
+            store.setActiveMode(mode)
+            store.clearPending() // Commit point: everything needed by the new mode is durable.
+        } catch (error: Exception) {
+            restore(snapshot)
+            throw error
+        }
+        clearInactiveAccess()
     }
 
     fun resetToDefault() {
-        accessCodeManager.clearCode()
+        calculatorAccess.clearCode()
+        calendarAccess.clear()
+        LocalCalendarNotesRepository(appContext).clear()
         try {
             store.setActiveMode(CoverMode.DEFAULT)
             store.clearPending()
@@ -50,24 +84,45 @@ class CoverModeManager(context: Context) {
 
     fun recoverInterruptedSetup() {
         if (store.pendingMode() != null) {
-            resetToDefault()
-            return
+            val snapshot = store.rollbackSnapshot()
+            if (snapshot == null) resetToDefault() else restore(snapshot)
         }
-
-        when (store.activeMode()) {
-            CoverMode.CALCULATOR -> {
-                if (!isCalculatorReady()) resetToDefault()
-            }
+        when (activeMode()) {
+            CoverMode.CALCULATOR -> if (!isCalculatorReady()) resetToDefault()
+            CoverMode.CALENDAR -> if (!isCalendarReady()) resetToDefault()
             CoverMode.DEFAULT -> {
-                // Upgrade safety for 1.0.5: Calculator used to be only a launcher style.
-                // 1.0.6 must not enter CalculatorCoverActivity without a configured code.
-                if (launcher.selectedStyle() == LauncherStyle.CALCULATOR) {
-                    resetToDefault()
-                }
+                // Repair aliases from old icon-only releases; covers require valid setup.
+                if (launcher.selectedStyle() != LauncherStyle.DEFAULT) resetToDefault()
             }
-            CoverMode.CALENDAR,
-            CoverMode.NOTES,
-            CoverMode.GALLERY -> resetToDefault()
+            CoverMode.NOTES, CoverMode.GALLERY -> resetToDefault()
         }
+        clearInactiveAccess()
+    }
+
+    private fun accessSnapshot(name: String): JSONObject = JSONObject().apply {
+        appContext.getSharedPreferences(name, Context.MODE_PRIVATE).all.forEach { (key, value) ->
+            if (value is String) put(key, value)
+        }
+    }
+
+    private fun restoreAccess(name: String, snapshot: JSONObject) {
+        val editor = appContext.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear()
+        snapshot.keys().forEach { key -> editor.putString(key, snapshot.getString(key)) }
+        check(editor.commit()) { "Unable to restore cover access configuration" }
+    }
+
+    private fun restore(snapshot: JSONObject) {
+        restoreAccess(CalculatorAccessCodeManager.PREFERENCES_NAME, snapshot.getJSONObject("calculator"))
+        restoreAccess(CalendarAccessManager.PREFERENCES_NAME, snapshot.getJSONObject("calendar"))
+        launcher.setStyle(LauncherStyle.valueOf(snapshot.getString("style")))
+        if (snapshot.getBoolean("hidden")) launcher.hide()
+        store.setActiveMode(CoverMode.valueOf(snapshot.getString("mode")))
+        store.clearPending()
+        clearInactiveAccess()
+    }
+
+    private fun clearInactiveAccess() {
+        if (activeMode() != CoverMode.CALCULATOR) calculatorAccess.clearCode()
+        if (activeMode() != CoverMode.CALENDAR) calendarAccess.clear()
     }
 }
