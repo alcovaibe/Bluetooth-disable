@@ -12,7 +12,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Attached to the text bounds only. No click, long-click or recovery semantics. */
+/** Attached to the history header bounds only. No click, long-click or recovery semantics. */
 @Composable
 internal fun Modifier.historyRecoveryHold(enabled: Boolean, onHold: () -> Unit): Modifier {
     val currentOnHold = rememberUpdatedState(onHold)

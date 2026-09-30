@@ -24,6 +24,7 @@ import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
 import com.pulse.bluetoothdisable.ui.CoverModeConfirmationDialog
+import com.pulse.bluetoothdisable.ui.coverSetupFieldShape
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +103,7 @@ private fun CalendarSetupScreen(
             } else {
                 OutlinedButton(
                     onClick = { choosingDate = true },
+                    shape = coverSetupFieldShape(),
                     modifier = Modifier.testTag("calendar_access_date_picker"),
                 ) {
                     Text(CalendarDates.formatDate(date, locale))
@@ -114,6 +116,7 @@ private fun CalendarSetupScreen(
                     label = { Text(stringResource(R.string.calendar_access_text)) },
                     supportingText = { Text(stringResource(R.string.calendar_text_length)) },
                     isError = text.isNotEmpty() && !CalendarAccessPolicy.isValid(text),
+                    shape = coverSetupFieldShape(),
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
