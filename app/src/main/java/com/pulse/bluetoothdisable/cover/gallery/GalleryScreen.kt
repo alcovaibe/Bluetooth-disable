@@ -1,6 +1,7 @@
 package com.pulse.bluetoothdisable.cover.gallery
 
 import android.graphics.BitmapFactory
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,7 +31,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
@@ -101,9 +101,14 @@ fun GalleryScreen(
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
+
                 state.storageError -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(stringResource(R.string.gallery_storage_error), color = MaterialTheme.colorScheme.error)
+                    Text(
+                        stringResource(R.string.gallery_storage_error),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
+
                 state.images.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(stringResource(R.string.gallery_empty))
@@ -111,6 +116,7 @@ fun GalleryScreen(
                         Button(onClick = onAddPhotos) { Text(stringResource(R.string.gallery_add_photos)) }
                     }
                 }
+
                 else -> GalleryGrid(state.images, viewModel)
             }
         }
@@ -186,6 +192,8 @@ private fun GalleryViewer(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val bitmap by galleryBitmap(viewModel, image.id, thumbnail = false)
 
+    BackHandler(onBack = onBack)
+
     fun move(delta: Int) {
         val index = images.indexOfFirst { it.id == image.id }
         if (index < 0) return
@@ -225,11 +233,13 @@ private fun GalleryViewer(
                             viewModel.resetSequence()
                         },
                         onDragStopped = {
-                            if (abs(dragDistance) > 120f) move(if (dragDistance < 0f) 1 else -1)
+                            if (abs(dragDistance) > 120f) {
+                                move(if (dragDistance < 0f) 1 else -1)
+                            }
                             dragDistance = 0f
                         },
                     )
-                    .pointerInputTransform(
+                    .galleryTransformGestures(
                         imageId = image.id,
                         scale = scale,
                         translation = translation,
@@ -239,7 +249,7 @@ private fun GalleryViewer(
                             viewModel.resetSequence()
                         },
                     )
-                    .pointerInputTaps(
+                    .galleryTapGestures(
                         imageId = image.id,
                         bitmap = bitmap,
                         containerSize = containerSize,
@@ -347,11 +357,15 @@ private fun GalleryInfoDialog(image: GalleryImage, onDismiss: () -> Unit) {
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 item { Text("${image.width} × ${image.height}") }
-                image.colorSpace?.let { color -> item { Text("Color space: $color") } }
+                image.colorSpace?.let { color ->
+                    item { Text(stringResource(R.string.gallery_color_space, color)) }
+                }
                 image.shooting.forEach { (key, value) -> item { Text("$key: $value") } }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.gallery_close)) } },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.gallery_close)) }
+        },
     )
 }
 
@@ -378,7 +392,9 @@ private fun GalleryEditDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
     )
 }
 
@@ -416,12 +432,12 @@ private fun galleryBitmap(
     }
 }
 
-private fun Modifier.pointerInputTransform(
+private fun Modifier.galleryTransformGestures(
     imageId: String,
     scale: Float,
     translation: Offset,
     onTransform: (Float, Offset) -> Unit,
-): Modifier = androidx.compose.ui.input.pointer.pointerInput(imageId) {
+): Modifier = pointerInput(imageId, scale, translation) {
     detectTransformGestures { _, pan, zoom, _ ->
         val nextScale = (scale * zoom).coerceIn(1f, 5f)
         val nextTranslation = if (nextScale <= 1.01f) Offset.Zero else translation + pan
@@ -429,7 +445,7 @@ private fun Modifier.pointerInputTransform(
     }
 }
 
-private fun Modifier.pointerInputTaps(
+private fun Modifier.galleryTapGestures(
     imageId: String,
     bitmap: ImageBitmap?,
     containerSize: IntSize,
@@ -437,13 +453,7 @@ private fun Modifier.pointerInputTaps(
     translation: Offset,
     onDoubleTap: () -> Unit,
     onZone: (GalleryTapZone?) -> Unit,
-): Modifier = androidx.compose.ui.input.pointer.pointerInput(
-    imageId,
-    bitmap,
-    containerSize,
-    scale,
-    translation,
-) {
+): Modifier = pointerInput(imageId, bitmap, containerSize, scale, translation) {
     detectTapGestures(
         onDoubleTap = { onDoubleTap() },
         onTap = { tap ->
@@ -456,7 +466,7 @@ private fun Modifier.pointerInputTaps(
     )
 }
 
-private fun zoneForTap(
+internal fun zoneForTap(
     tap: Offset,
     container: IntSize,
     bitmap: ImageBitmap?,
