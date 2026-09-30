@@ -75,7 +75,7 @@ jobs:
           disable-animations: true
           script: |
             ./gradlew connectedDebugAndroidTest
-            adb pull /sdcard/Android/data/com.pulse.bluetoothdisable/files/calendar-previews app/build/calendar-previews
+            adb pull /data/local/tmp/calendar-previews app/build/calendar-previews
 
       - name: Upload instrumented test reports
         if: always()

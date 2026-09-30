@@ -2,8 +2,7 @@ package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import java.io.File
+import android.os.ParcelFileDescriptor
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -175,10 +174,14 @@ class CalendarCoverInstrumentedTest {
 
     private fun capturePreview(name: String) {
         compose.waitForIdle()
-        val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        val directory = File(context.getExternalFilesDir(null), "calendar-previews").apply { mkdirs() }
-        File(directory, name).outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        bitmap.recycle()
+        // Use a shell-owned temporary directory: Gradle removes app data after tests.
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        for (command in listOf("mkdir -p /data/local/tmp/calendar-previews",
+            "screencap -p /data/local/tmp/calendar-previews/$name")) {
+            ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use {
+                it.readBytes()
+            }
+        }
     }
 
     private fun isMainResumed(): Boolean {
