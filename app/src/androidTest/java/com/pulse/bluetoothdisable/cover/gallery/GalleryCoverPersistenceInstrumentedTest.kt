@@ -3,8 +3,8 @@ package com.pulse.bluetoothdisable.cover.gallery
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.media.ExifInterface
 import android.net.Uri
+import androidx.exifinterface.media.ExifInterface
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.pulse.bluetoothdisable.cover.CoverMode
@@ -56,18 +56,18 @@ class GalleryCoverPersistenceInstrumentedTest {
 
         val sanitized = ExifInterface(ByteArrayInputStream(repository.imageBytes(image.id)))
         for (removed in listOf(
-            "Make",
-            "Model",
-            "DateTime",
-            "Software",
-            "ImageDescription",
-            "XResolution",
-            "YResolution",
+            ExifInterface.TAG_MAKE,
+            ExifInterface.TAG_MODEL,
+            ExifInterface.TAG_DATETIME,
+            ExifInterface.TAG_SOFTWARE,
+            ExifInterface.TAG_IMAGE_DESCRIPTION,
+            ExifInterface.TAG_X_RESOLUTION,
+            ExifInterface.TAG_Y_RESOLUTION,
         )) {
             assertNull("$removed must not survive sanitized local copy", sanitized.getAttribute(removed))
         }
-        assertNull(sanitized.getAttribute("GPSLatitude"))
-        assertNull(sanitized.getAttribute("GPSLongitude"))
+        assertNull(sanitized.getAttribute(ExifInterface.TAG_GPS_LATITUDE))
+        assertNull(sanitized.getAttribute(ExifInterface.TAG_GPS_LONGITUDE))
 
         val firstSequence = listOf(
             GalleryTapZone.TOP_LEFT,
@@ -136,18 +136,21 @@ class GalleryCoverPersistenceInstrumentedTest {
     private fun createJpegWithExif(): File {
         val file = createPlainJpeg("gallery-source-exif.jpg")
         ExifInterface(file.absolutePath).apply {
-            setAttribute("Make", "PrivateCameraMaker")
-            setAttribute("Model", "PrivateCameraModel")
-            setAttribute("Software", "PrivateEditor")
-            setAttribute("DateTime", "2026:09:30 20:15:00")
-            setAttribute("ImageDescription", "private description")
-            setAttribute("XResolution", "300/1")
-            setAttribute("YResolution", "300/1")
-            setAttribute("ExposureTime", "1/125")
-            setAttribute("FNumber", "18/10")
-            setAttribute("PhotographicSensitivity", "200")
+            setAttribute(ExifInterface.TAG_MAKE, "PrivateCameraMaker")
+            setAttribute(ExifInterface.TAG_MODEL, "PrivateCameraModel")
+            setAttribute(ExifInterface.TAG_SOFTWARE, "PrivateEditor")
+            setAttribute(ExifInterface.TAG_DATETIME, "2026:09:30 20:15:00")
+            setAttribute(ExifInterface.TAG_IMAGE_DESCRIPTION, "private description")
+            setAttribute(ExifInterface.TAG_X_RESOLUTION, "300/1")
+            setAttribute(ExifInterface.TAG_Y_RESOLUTION, "300/1")
+            setAttribute(ExifInterface.TAG_EXPOSURE_TIME, "0.008")
+            setAttribute(ExifInterface.TAG_F_NUMBER, "1.8")
+            setAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, "200")
             saveAttributes()
         }
+        val sourceExif = ExifInterface(file.absolutePath)
+        assertNotNull(sourceExif.getAttribute(ExifInterface.TAG_EXPOSURE_TIME))
+        assertNotNull(sourceExif.getAttribute(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY))
         return file
     }
 
