@@ -3,6 +3,11 @@ name: Android Full Compatibility
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'LICENSE.*'
   workflow_dispatch:
 
 permissions:
