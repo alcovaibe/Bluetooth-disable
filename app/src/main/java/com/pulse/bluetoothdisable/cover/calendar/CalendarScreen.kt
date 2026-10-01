@@ -100,7 +100,7 @@ fun CalendarScreen(
                                 Surface(
                                     onClick = { viewModel.select(date) },
                                     shape = CircleShape,
-                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
                                     border = if (date == today) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                                     modifier = Modifier.size(44.dp).testTag("calendar_day_$date")
                                         .semantics { contentDescription = CalendarDates.formatDate(date, locale) },
