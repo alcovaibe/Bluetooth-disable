@@ -41,8 +41,8 @@ android {
         applicationId = "com.pulse.bluetoothdisable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.0.12"
+        versionCode = 15
+        versionName = "1.0.13"
 
         buildConfigField("String", "APP_VERSION", "\"$versionName\"")
 
