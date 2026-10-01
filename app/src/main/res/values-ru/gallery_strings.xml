@@ -16,7 +16,20 @@
     <string name="gallery_sequence_clear">Очистить</string>
     <string name="gallery_back">Назад</string>
     <string name="gallery_finish_setup">Включить режим Галерея</string>
+    <string name="gallery_photos">Фото</string>
+    <string name="gallery_albums">Альбомы</string>
+    <string name="gallery_today">Сегодня</string>
+    <string name="gallery_yesterday">Вчера</string>
+    <string name="gallery_favorites">Избранное</string>
     <string name="gallery_favorite">Избранное</string>
+    <string name="gallery_album">Альбом</string>
+    <string name="gallery_create_album">Создать альбом</string>
+    <string name="gallery_album_name">Название альбома</string>
+    <string name="gallery_create">Создать</string>
+    <string name="gallery_add_to_album">Добавить в альбом</string>
+    <string name="gallery_no_albums">Альбомов пока нет</string>
+    <string name="gallery_album_empty">В этом альбоме пока нет фотографий</string>
+    <string name="gallery_photo_count">%1$d фото</string>
     <string name="gallery_edit">Изменить</string>
     <string name="gallery_info">Информация</string>
     <string name="gallery_color_space">Цветовое пространство: %1$s</string>
@@ -27,5 +40,5 @@
     <string name="gallery_rotate_right">Повернуть вправо</string>
     <string name="gallery_crop_square">Обрезать по центру 1:1</string>
     <string name="gallery_close">Закрыть</string>
-    <string name="gallery_recovery_description">Сбросить маскировку Галерея и вернуть обычный значок приложения? Локальные фотографии, избранное и метаданные сохранятся.</string>
+    <string name="gallery_recovery_description">Сбросить маскировку Галерея и вернуть обычный значок приложения? Локальные фотографии, избранное, альбомы и метаданные сохранятся.</string>
 </resources>

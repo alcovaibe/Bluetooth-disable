@@ -16,7 +16,20 @@
     <string name="gallery_sequence_clear">Clear</string>
     <string name="gallery_back">Back</string>
     <string name="gallery_finish_setup">Enable Gallery mode</string>
+    <string name="gallery_photos">Photos</string>
+    <string name="gallery_albums">Albums</string>
+    <string name="gallery_today">Today</string>
+    <string name="gallery_yesterday">Yesterday</string>
+    <string name="gallery_favorites">Favorites</string>
     <string name="gallery_favorite">Favorite</string>
+    <string name="gallery_album">Album</string>
+    <string name="gallery_create_album">Create album</string>
+    <string name="gallery_album_name">Album name</string>
+    <string name="gallery_create">Create</string>
+    <string name="gallery_add_to_album">Add to album</string>
+    <string name="gallery_no_albums">No albums yet</string>
+    <string name="gallery_album_empty">This album is empty</string>
+    <string name="gallery_photo_count">%1$d photos</string>
     <string name="gallery_edit">Edit</string>
     <string name="gallery_info">Info</string>
     <string name="gallery_color_space">Color space: %1$s</string>
@@ -27,5 +40,5 @@
     <string name="gallery_rotate_right">Rotate right</string>
     <string name="gallery_crop_square">Center crop 1:1</string>
     <string name="gallery_close">Close</string>
-    <string name="gallery_recovery_description">Reset Gallery disguise and restore the normal app launcher? Local Gallery photos, favorites and metadata will be kept.</string>
+    <string name="gallery_recovery_description">Reset Gallery disguise and restore the normal app launcher? Local Gallery photos, favorites, albums and metadata will be kept.</string>
 </resources>

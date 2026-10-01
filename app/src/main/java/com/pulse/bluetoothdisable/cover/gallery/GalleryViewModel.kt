@@ -14,6 +14,7 @@ import kotlinx.coroutines.withContext
 
 data class GalleryUiState(
     val images: List<GalleryImage> = emptyList(),
+    val albums: List<GalleryAlbum> = emptyList(),
     val loading: Boolean = true,
     val storageError: Boolean = false,
     val selectedImageId: String? = null,
@@ -57,6 +58,15 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         repository.toggleFavorite(image.id)
     }
 
+    fun createAlbum(name: String, image: GalleryImage? = null) = mutate {
+        val album = repository.createAlbum(name)
+        if (image != null) repository.addToAlbum(image.id, album.id)
+    }
+
+    fun addToAlbum(image: GalleryImage, album: GalleryAlbum) = mutate {
+        repository.addToAlbum(image.id, album.id)
+    }
+
     fun delete(image: GalleryImage) = mutate {
         repository.delete(image.id)
         if (access.isSecretImage(image.id)) access.clear()
@@ -90,13 +100,18 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
 
     fun refresh() {
         viewModelScope.launch {
-            val result = withContext(Dispatchers.IO) { runCatching { repository.images() } }
+            val result = withContext(Dispatchers.IO) {
+                runCatching { repository.images() to repository.albums() }
+            }
+            val currentImages = result.getOrNull()?.first ?: emptyList()
+            val currentAlbums = result.getOrNull()?.second ?: emptyList()
             uiState = uiState.copy(
-                images = result.getOrDefault(emptyList()),
+                images = currentImages,
+                albums = currentAlbums,
                 loading = false,
                 storageError = result.isFailure,
                 selectedImageId = uiState.selectedImageId?.takeIf { id ->
-                    result.getOrDefault(emptyList()).any { it.id == id }
+                    currentImages.any { it.id == id }
                 },
             )
         }
@@ -114,12 +129,14 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
             val result = withContext(Dispatchers.IO) {
                 runCatching {
                     action()
-                    repository.images()
+                    repository.images() to repository.albums()
                 }
             }
-            val images = result.getOrDefault(uiState.images)
+            val images = result.getOrNull()?.first ?: uiState.images
+            val albums = result.getOrNull()?.second ?: uiState.albums
             uiState = uiState.copy(
                 images = images,
+                albums = albums,
                 selectedImageId = uiState.selectedImageId?.takeIf { id -> images.any { it.id == id } },
                 busy = false,
                 storageError = result.isFailure,

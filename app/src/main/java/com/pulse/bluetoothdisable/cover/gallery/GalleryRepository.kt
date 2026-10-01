@@ -11,6 +11,8 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
+import java.text.SimpleDateFormat
+import java.util.Locale
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
@@ -21,6 +23,7 @@ class GalleryRepository(context: Context) {
     private val imagesDir = File(root, "images")
     private val thumbsDir = File(root, "thumbs")
     private val indexFile = File(root, "index.enc")
+    private val albumsFile = File(root, "albums.enc")
     private val lock = Any()
 
     init {
@@ -29,10 +32,11 @@ class GalleryRepository(context: Context) {
     }
 
     fun images(): List<GalleryImage> = synchronized(lock) {
-        loadIndex().sortedWith(
-            compareByDescending<GalleryImage> { it.favorite }
-                .thenByDescending { it.importedAt },
-        )
+        loadIndex().sortedByDescending { it.capturedAt ?: it.importedAt }
+    }
+
+    fun albums(): List<GalleryAlbum> = synchronized(lock) {
+        loadAlbums().sortedBy { it.name.lowercase(Locale.ROOT) }
     }
 
     fun image(id: String): GalleryImage? = synchronized(lock) {
@@ -87,6 +91,7 @@ class GalleryRepository(context: Context) {
                 mimeType = prepared.mimeType,
                 source = SOURCE_USER_PICKER,
                 shooting = prepared.shooting,
+                capturedAt = prepared.capturedAt,
             )
             prepared.bitmap.recycle()
             current += item
@@ -102,6 +107,43 @@ class GalleryRepository(context: Context) {
         if (index < 0) return@synchronized null
         val changed = current[index].copy(
             favorite = !current[index].favorite,
+            updatedAt = System.currentTimeMillis(),
+        )
+        current[index] = changed
+        saveIndex(current)
+        changed
+    }
+
+    fun createAlbum(name: String): GalleryAlbum = synchronized(lock) {
+        val normalized = name.trim()
+        require(normalized.isNotEmpty() && normalized.length <= MAX_ALBUM_NAME_LENGTH) {
+            "Invalid album name"
+        }
+        val current = loadAlbums().toMutableList()
+        current.firstOrNull { it.name.equals(normalized, ignoreCase = true) }?.let {
+            return@synchronized it
+        }
+
+        val album = GalleryAlbum(
+            id = UUID.randomUUID().toString(),
+            name = normalized,
+            createdAt = System.currentTimeMillis(),
+        )
+        current += album
+        saveAlbums(current)
+        album
+    }
+
+    fun addToAlbum(imageId: String, albumId: String): GalleryImage = synchronized(lock) {
+        require(loadAlbums().any { it.id == albumId }) { "Unknown gallery album" }
+        val current = loadIndex().toMutableList()
+        val index = current.indexOfFirst { it.id == imageId }
+        require(index >= 0) { "Unknown gallery image" }
+        val old = current[index]
+        if (albumId in old.albumIds) return@synchronized old
+
+        val changed = old.copy(
+            albumIds = old.albumIds + albumId,
             updatedAt = System.currentTimeMillis(),
         )
         current[index] = changed
@@ -178,6 +220,7 @@ class GalleryRepository(context: Context) {
         val sha256: String,
         val mimeType: String,
         val shooting: Map<String, String>,
+        val capturedAt: Long?,
     )
 
     private data class EncodedImage(val bytes: ByteArray, val mimeType: String)
@@ -186,6 +229,7 @@ class GalleryRepository(context: Context) {
         val exif = runCatching { ExifInterface(ByteArrayInputStream(source)) }.getOrNull()
         val orientation = exif?.getAttributeInt("Orientation", 1) ?: 1
         val shooting = readShootingMetadata(exif)
+        val capturedAt = readCaptureTime(exif)
 
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(source, 0, source.size, bounds)
@@ -207,6 +251,7 @@ class GalleryRepository(context: Context) {
             sha256 = sha256(encoded.bytes),
             mimeType = encoded.mimeType,
             shooting = shooting,
+            capturedAt = capturedAt,
         )
     }
 
@@ -272,6 +317,20 @@ class GalleryRepository(context: Context) {
         return result
     }
 
+    private fun readCaptureTime(exif: ExifInterface?): Long? {
+        if (exif == null) return null
+        val value = listOf("DateTimeOriginal", "DateTimeDigitized", "DateTime")
+            .firstNotNullOfOrNull { tag ->
+                exif.getAttribute(tag)?.takeIf { it.isNotBlank() }
+            } ?: return null
+
+        return runCatching {
+            SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).apply {
+                isLenient = false
+            }.parse(value)?.time
+        }.getOrNull()
+    }
+
     private fun readBounded(resolver: ContentResolver, uri: Uri): ByteArray {
         val stream = checkNotNull(resolver.openInputStream(uri)) { "Unable to open selected image" }
         stream.use { input ->
@@ -304,11 +363,50 @@ class GalleryRepository(context: Context) {
     private fun saveIndex(items: List<GalleryImage>) {
         val array = JSONArray()
         items.forEach { array.put(toJson(it)) }
-        val encrypted = GalleryCipher.encrypt(array.toString().toByteArray(Charsets.UTF_8), INDEX_PURPOSE)
-        val temp = File(root, "index.tmp")
+        saveEncryptedArray(indexFile, INDEX_PURPOSE, array)
+    }
+
+    private fun loadAlbums(): List<GalleryAlbum> {
+        if (!albumsFile.exists()) return emptyList()
+        val json = String(
+            GalleryCipher.decrypt(albumsFile.readBytes(), ALBUMS_PURPOSE),
+            Charsets.UTF_8,
+        )
+        val array = JSONArray(json)
+        return buildList {
+            for (i in 0 until array.length()) {
+                val item = array.getJSONObject(i)
+                add(
+                    GalleryAlbum(
+                        id = item.getString("id"),
+                        name = item.getString("name"),
+                        createdAt = item.optLong("createdAt", 0L),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun saveAlbums(items: List<GalleryAlbum>) {
+        val array = JSONArray()
+        items.forEach { album ->
+            array.put(
+                JSONObject().apply {
+                    put("id", album.id)
+                    put("name", album.name)
+                    put("createdAt", album.createdAt)
+                },
+            )
+        }
+        saveEncryptedArray(albumsFile, ALBUMS_PURPOSE, array)
+    }
+
+    private fun saveEncryptedArray(target: File, purpose: String, array: JSONArray) {
+        val encrypted = GalleryCipher.encrypt(array.toString().toByteArray(Charsets.UTF_8), purpose)
+        val temp = File(root, "${target.name}.tmp")
         temp.writeBytes(encrypted)
-        if (indexFile.exists()) check(indexFile.delete()) { "Unable to replace gallery index" }
-        check(temp.renameTo(indexFile)) { "Unable to commit gallery index" }
+        if (target.exists()) check(target.delete()) { "Unable to replace gallery data" }
+        check(temp.renameTo(target)) { "Unable to commit gallery data" }
     }
 
     private fun toJson(item: GalleryImage) = JSONObject().apply {
@@ -326,6 +424,8 @@ class GalleryRepository(context: Context) {
         put("mimeType", item.mimeType)
         put("source", item.source)
         put("shooting", JSONObject(item.shooting))
+        put("capturedAt", item.capturedAt ?: JSONObject.NULL)
+        put("albums", JSONArray().apply { item.albumIds.forEach { put(it) } })
     }
 
     private fun fromJson(json: JSONObject): GalleryImage {
@@ -336,6 +436,14 @@ class GalleryRepository(context: Context) {
             val key = keys.next()
             shooting[key] = shootingJson.getString(key)
         }
+
+        val albumIds = buildList {
+            val albums = json.optJSONArray("albums") ?: JSONArray()
+            for (i in 0 until albums.length()) {
+                albums.optString(i).takeIf { it.isNotBlank() }?.let(::add)
+            }
+        }
+
         return GalleryImage(
             id = json.getString("id"),
             encryptedFileName = json.getString("file"),
@@ -351,6 +459,12 @@ class GalleryRepository(context: Context) {
             mimeType = json.optString("mimeType", "image/jpeg"),
             source = json.optString("source", SOURCE_USER_PICKER),
             shooting = shooting,
+            capturedAt = if (json.has("capturedAt") && !json.isNull("capturedAt")) {
+                json.optLong("capturedAt")
+            } else {
+                null
+            },
+            albumIds = albumIds,
         )
     }
 
@@ -360,9 +474,11 @@ class GalleryRepository(context: Context) {
     companion object {
         const val SOURCE_USER_PICKER = "USER_PICKER"
         private const val INDEX_PURPOSE = "index"
+        private const val ALBUMS_PURPOSE = "albums"
         private const val MAX_INPUT_BYTES = 64 * 1024 * 1024
         private const val MAX_DECODE_PIXELS = 24_000_000L
         private const val THUMBNAIL_SIZE = 512
+        private const val MAX_ALBUM_NAME_LENGTH = 80
 
         private val SHOOTING_TAGS = listOf(
             "ExposureTime",

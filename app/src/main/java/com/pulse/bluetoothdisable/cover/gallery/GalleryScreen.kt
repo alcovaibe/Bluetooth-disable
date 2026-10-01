@@ -5,11 +5,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,17 +16,36 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Photo
+import androidx.compose.material.icons.rounded.PhotoAlbum
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -39,20 +56,36 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.coverRecoveryHold
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlin.math.abs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+private enum class GallerySection {
+    PHOTOS,
+    ALBUMS,
+}
+
+private const val FAVORITES_ALBUM_ID = "__favorites__"
 
 @Composable
 fun GalleryScreen(
@@ -63,12 +96,29 @@ fun GalleryScreen(
     onAddPhotos: () -> Unit,
 ) {
     val state = viewModel.uiState
+    var section by remember { mutableStateOf(GallerySection.PHOTOS) }
+    var selectedAlbumId by remember { mutableStateOf<String?>(null) }
+    var showCreateAlbum by remember { mutableStateOf(false) }
+
     val selected = state.selectedImageId?.let { id -> state.images.firstOrNull { it.id == id } }
+    val albumImages = selectedAlbumId?.let { id ->
+        when (id) {
+            FAVORITES_ALBUM_ID -> state.images.filter { it.favorite }
+            else -> state.images.filter { id in it.albumIds }
+        }
+    }
+    val viewerImages = when {
+        selected == null -> emptyList()
+        albumImages?.any { it.id == selected.id } == true -> albumImages
+        selectedAlbumId != null -> listOf(selected)
+        else -> state.images
+    }
 
     if (selected != null) {
         GalleryViewer(
             image = selected,
-            images = state.images,
+            images = viewerImages,
+            albums = state.albums,
             viewModel = viewModel,
             recoveryEnabled = recoveryEnabled,
             onRecoveryHold = onRecoveryHold,
@@ -78,8 +128,35 @@ fun GalleryScreen(
         return
     }
 
-    Surface(Modifier.fillMaxSize()) {
-        Column(Modifier.safeDrawingPadding()) {
+    if (selectedAlbumId != null) {
+        val title = if (selectedAlbumId == FAVORITES_ALBUM_ID) {
+            stringResource(R.string.gallery_favorites)
+        } else {
+            state.albums.firstOrNull { it.id == selectedAlbumId }?.name
+                ?: stringResource(R.string.gallery_albums)
+        }
+        GalleryAlbumDetail(
+            title = title,
+            images = albumImages.orEmpty(),
+            viewModel = viewModel,
+            onBack = { selectedAlbumId = null },
+        )
+        return
+    }
+
+    if (showCreateAlbum) {
+        GalleryCreateAlbumDialog(
+            onCreate = { name ->
+                showCreateAlbum = false
+                viewModel.createAlbum(name)
+            },
+            onDismiss = { showCreateAlbum = false },
+        )
+    }
+
+    Scaffold(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        topBar = {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -91,11 +168,31 @@ fun GalleryScreen(
                         .weight(1f)
                         .coverRecoveryHold(recoveryEnabled, onRecoveryHold),
                 )
-                TextButton(onClick = onAddPhotos, enabled = !state.busy) {
-                    Text(stringResource(R.string.gallery_add_photos))
+                when (section) {
+                    GallerySection.PHOTOS -> {
+                        TextButton(onClick = onAddPhotos, enabled = !state.busy) {
+                            Text(stringResource(R.string.gallery_add_photos))
+                        }
+                    }
+                    GallerySection.ALBUMS -> {
+                        TextButton(onClick = { showCreateAlbum = true }, enabled = !state.busy) {
+                            Text(stringResource(R.string.gallery_create_album))
+                        }
+                    }
                 }
             }
-
+        },
+        bottomBar = {
+            GallerySectionDock(
+                section = section,
+                onSection = { section = it },
+                modifier = Modifier
+                    .padding(horizontal = 28.dp, vertical = 10.dp)
+                    .navigationBarsPadding(),
+            )
+        },
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
@@ -108,15 +205,135 @@ fun GalleryScreen(
                     )
                 }
 
-                state.images.isEmpty() -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.gallery_empty))
-                        Spacer(Modifier.height(12.dp))
-                        Button(onClick = onAddPhotos) { Text(stringResource(R.string.gallery_add_photos)) }
+                section == GallerySection.PHOTOS && state.images.isEmpty() -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(stringResource(R.string.gallery_empty))
+                            Spacer(Modifier.height(12.dp))
+                            Button(onClick = onAddPhotos) {
+                                Text(stringResource(R.string.gallery_add_photos))
+                            }
+                        }
                     }
                 }
 
-                else -> GalleryGrid(state.images, viewModel)
+                section == GallerySection.PHOTOS -> {
+                    GalleryTimeline(
+                        images = state.images,
+                        viewModel = viewModel,
+                    )
+                }
+
+                else -> {
+                    GalleryAlbumsOverview(
+                        images = state.images,
+                        albums = state.albums,
+                        viewModel = viewModel,
+                        onOpenAlbum = { selectedAlbumId = it },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GallerySectionDock(
+    section: GallerySection,
+    onSection: (GallerySection) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(32.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = 6.dp,
+        shadowElevation = 8.dp,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GalleryDockItem(
+                icon = Icons.Rounded.Photo,
+                label = stringResource(R.string.gallery_photos),
+                selected = section == GallerySection.PHOTOS,
+                onClick = { onSection(GallerySection.PHOTOS) },
+                modifier = Modifier.weight(1f),
+            )
+            GalleryDockItem(
+                icon = Icons.Rounded.PhotoAlbum,
+                label = stringResource(R.string.gallery_albums),
+                selected = section == GallerySection.ALBUMS,
+                onClick = { onSection(GallerySection.ALBUMS) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GalleryDockItem(
+    icon: ImageVector,
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        modifier = modifier.padding(horizontal = 4.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
+        onClick = onClick,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Icon(icon, contentDescription = label, tint = tint, modifier = Modifier.size(28.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = tint)
+        }
+    }
+}
+
+@Composable
+private fun GalleryTimeline(
+    images: List<GalleryImage>,
+    viewModel: GalleryViewModel,
+) {
+    val locale = LocalConfiguration.current.locales[0]
+    val today = LocalDate.now()
+    val zone = ZoneId.systemDefault()
+    val groups = images.groupBy { image ->
+        Instant.ofEpochMilli(image.capturedAt ?: image.importedAt).atZone(zone).toLocalDate()
+    }.toSortedMap(compareByDescending { it })
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        groups.forEach { (date, datedImages) ->
+            item(key = "date-$date") {
+                val label = when (date) {
+                    today -> stringResource(R.string.gallery_today)
+                    today.minusDays(1) -> stringResource(R.string.gallery_yesterday)
+                    else -> date.format(
+                        DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale),
+                    )
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp, top = 12.dp, bottom = 4.dp),
+                )
+            }
+            items(
+                items = datedImages.chunked(3),
+                key = { row -> "date-$date-${row.joinToString("|") { it.id }}" },
+            ) { row ->
+                GalleryImageRow(row = row, viewModel = viewModel)
             }
         }
     }
@@ -129,44 +346,242 @@ private fun GalleryGrid(images: List<GalleryImage>, viewModel: GalleryViewModel)
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(images.chunked(3), key = { row -> row.joinToString("|") { it.id } }) { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                repeat(3) { column ->
-                    val image = row.getOrNull(column)
-                    if (image == null) {
-                        Spacer(Modifier.weight(1f))
-                    } else {
-                        Box(
+            GalleryImageRow(row = row, viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
+private fun GalleryImageRow(
+    row: List<GalleryImage>,
+    viewModel: GalleryViewModel,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        repeat(3) { column ->
+            val image = row.getOrNull(column)
+            if (image == null) {
+                Spacer(Modifier.weight(1f))
+            } else {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(132.dp)
+                        .clickable { viewModel.select(image) },
+                ) {
+                    GalleryStoredImage(
+                        id = image.id,
+                        thumbnail = true,
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    if (image.favorite) {
+                        Icon(
+                            imageVector = Icons.Rounded.Favorite,
+                            contentDescription = stringResource(R.string.gallery_favorite),
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier
-                                .weight(1f)
-                                .height(132.dp)
-                                .clickable { viewModel.select(image) },
-                        ) {
-                            GalleryStoredImage(
-                                id = image.id,
-                                thumbnail = true,
-                                viewModel = viewModel,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                            if (image.favorite) {
-                                Text(
-                                    text = "♥",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .padding(6.dp)
-                                        .background(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                            MaterialTheme.shapes.small,
-                                        )
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                .align(Alignment.TopEnd)
+                                .padding(6.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                    MaterialTheme.shapes.small,
                                 )
-                            }
-                        }
+                                .padding(5.dp)
+                                .size(18.dp),
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GalleryAlbumsOverview(
+    images: List<GalleryImage>,
+    albums: List<GalleryAlbum>,
+    viewModel: GalleryViewModel,
+    onOpenAlbum: (String) -> Unit,
+) {
+    val favoriteImages = images.filter { it.favorite }
+    val entries = buildList {
+        if (favoriteImages.isNotEmpty()) {
+            add(
+                AlbumEntry(
+                    id = FAVORITES_ALBUM_ID,
+                    name = null,
+                    images = favoriteImages,
+                    favorite = true,
+                ),
+            )
+        }
+        albums.forEach { album ->
+            add(
+                AlbumEntry(
+                    id = album.id,
+                    name = album.name,
+                    images = images.filter { album.id in it.albumIds },
+                    favorite = false,
+                ),
+            )
+        }
+    }
+
+    if (entries.isEmpty()) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(
+                stringResource(R.string.gallery_no_albums),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(entries.chunked(2), key = { row -> row.joinToString("|") { it.id } }) { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                repeat(2) { index ->
+                    val entry = row.getOrNull(index)
+                    if (entry == null) {
+                        Spacer(Modifier.weight(1f))
+                    } else {
+                        GalleryAlbumCard(
+                            entry = entry,
+                            viewModel = viewModel,
+                            onClick = { onOpenAlbum(entry.id) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class AlbumEntry(
+    val id: String,
+    val name: String?,
+    val images: List<GalleryImage>,
+    val favorite: Boolean,
+)
+
+@Composable
+private fun GalleryAlbumCard(
+    entry: AlbumEntry,
+    viewModel: GalleryViewModel,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        onClick = onClick,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center,
+            ) {
+                val cover = entry.images.firstOrNull()
+                if (cover != null) {
+                    GalleryStoredImage(
+                        id = cover.id,
+                        thumbnail = true,
+                        viewModel = viewModel,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Rounded.PhotoAlbum,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (entry.favorite) {
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.TopEnd).padding(8.dp),
+                    )
+                }
+            }
+            Text(
+                text = entry.name ?: stringResource(R.string.gallery_favorites),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp),
+                maxLines = 1,
+            )
+            Text(
+                text = stringResource(R.string.gallery_photo_count, entry.images.size),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun GalleryAlbumDetail(
+    title: String,
+    images: List<GalleryImage>,
+    viewModel: GalleryViewModel,
+    onBack: () -> Unit,
+) {
+    BackHandler(onBack = onBack)
+    Scaffold(
+        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
+        topBar = {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.gallery_back),
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
+                Text(
+                    text = images.size.toString(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(end = 12.dp),
+                )
+            }
+        },
+    ) { padding ->
+        if (images.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    stringResource(R.string.gallery_album_empty),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                GalleryGrid(images = images, viewModel = viewModel)
             }
         }
     }
@@ -176,6 +591,7 @@ private fun GalleryGrid(images: List<GalleryImage>, viewModel: GalleryViewModel)
 private fun GalleryViewer(
     image: GalleryImage,
     images: List<GalleryImage>,
+    albums: List<GalleryAlbum>,
     viewModel: GalleryViewModel,
     recoveryEnabled: Boolean,
     onRecoveryHold: () -> Unit,
@@ -185,9 +601,10 @@ private fun GalleryViewer(
     var showInfo by remember { mutableStateOf(false) }
     var showEdit by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
+    var showAlbumPicker by remember { mutableStateOf(false) }
+    var showAlbumCreator by remember { mutableStateOf(false) }
     var scale by remember(image.id) { mutableFloatStateOf(1f) }
     var translation by remember(image.id) { mutableStateOf(Offset.Zero) }
-    var dragDistance by remember(image.id) { mutableFloatStateOf(0f) }
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val bitmap by galleryBitmap(viewModel, image.id, thumbnail = false)
 
@@ -203,10 +620,15 @@ private fun GalleryViewer(
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = onBack) { Text("‹") }
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = stringResource(R.string.gallery_back),
+                    )
+                }
                 Text(
                     stringResource(R.string.launcher_name_gallery),
                     style = MaterialTheme.typography.titleLarge,
@@ -223,22 +645,7 @@ private fun GalleryViewer(
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest)
                     .onSizeChanged { containerSize = it }
-                    .draggable(
-                        state = rememberDraggableState { delta -> dragDistance += delta },
-                        orientation = Orientation.Horizontal,
-                        enabled = scale <= 1.01f,
-                        onDragStarted = {
-                            dragDistance = 0f
-                            viewModel.resetSequence()
-                        },
-                        onDragStopped = {
-                            if (abs(dragDistance) > 120f) {
-                                move(if (dragDistance < 0f) 1 else -1)
-                            }
-                            dragDistance = 0f
-                        },
-                    )
-                    .galleryTransformGestures(
+                    .galleryViewerGestures(
                         imageId = image.id,
                         scale = scale,
                         translation = translation,
@@ -246,6 +653,10 @@ private fun GalleryViewer(
                             scale = nextScale
                             translation = nextTranslation
                             viewModel.resetSequence()
+                        },
+                        onSwipe = { direction ->
+                            viewModel.resetSequence()
+                            move(direction)
                         },
                     )
                     .galleryTapGestures(
@@ -285,16 +696,42 @@ private fun GalleryViewer(
 
             Surface(tonalElevation = 4.dp) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    GalleryToolbarAction(if (image.favorite) "♥" else "♡", R.string.gallery_favorite) {
+                    GalleryToolbarAction(
+                        icon = if (image.favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                        labelRes = R.string.gallery_favorite,
+                        tint = if (image.favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    ) {
                         viewModel.toggleFavorite(image)
                     }
-                    GalleryToolbarAction("✎", R.string.gallery_edit) { showEdit = true }
-                    GalleryToolbarAction("ⓘ", R.string.gallery_info) { showInfo = true }
-                    GalleryToolbarAction("⌫", R.string.gallery_delete) { showDelete = true }
+                    GalleryToolbarAction(
+                        icon = Icons.Rounded.PhotoAlbum,
+                        labelRes = R.string.gallery_album,
+                    ) {
+                        showAlbumPicker = true
+                    }
+                    GalleryToolbarAction(
+                        icon = Icons.Rounded.Edit,
+                        labelRes = R.string.gallery_edit,
+                    ) {
+                        showEdit = true
+                    }
+                    GalleryToolbarAction(
+                        icon = Icons.Rounded.Info,
+                        labelRes = R.string.gallery_info,
+                    ) {
+                        showInfo = true
+                    }
+                    GalleryToolbarAction(
+                        icon = Icons.Rounded.Delete,
+                        labelRes = R.string.gallery_delete,
+                        tint = MaterialTheme.colorScheme.error,
+                    ) {
+                        showDelete = true
+                    }
                 }
             }
         }
@@ -320,6 +757,30 @@ private fun GalleryViewer(
             onDismiss = { showEdit = false },
         )
     }
+    if (showAlbumPicker) {
+        GalleryAlbumPickerDialog(
+            image = image,
+            albums = albums,
+            onSelect = { album ->
+                showAlbumPicker = false
+                viewModel.addToAlbum(image, album)
+            },
+            onCreate = {
+                showAlbumPicker = false
+                showAlbumCreator = true
+            },
+            onDismiss = { showAlbumPicker = false },
+        )
+    }
+    if (showAlbumCreator) {
+        GalleryCreateAlbumDialog(
+            onCreate = { name ->
+                showAlbumCreator = false
+                viewModel.createAlbum(name, image)
+            },
+            onDismiss = { showAlbumCreator = false },
+        )
+    }
     if (showDelete) {
         AlertDialog(
             onDismissRequest = { showDelete = false },
@@ -339,13 +800,109 @@ private fun GalleryViewer(
 }
 
 @Composable
-private fun GalleryToolbarAction(symbol: String, labelRes: Int, onClick: () -> Unit) {
+private fun GalleryToolbarAction(
+    icon: ImageVector,
+    labelRes: Int,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: () -> Unit,
+) {
     TextButton(onClick = onClick) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(symbol, style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(labelRes), style = MaterialTheme.typography.labelSmall)
+            Icon(
+                imageVector = icon,
+                contentDescription = stringResource(labelRes),
+                tint = tint,
+                modifier = Modifier.size(26.dp),
+            )
+            Text(
+                stringResource(labelRes),
+                style = MaterialTheme.typography.labelSmall,
+                color = tint,
+            )
         }
     }
+}
+
+@Composable
+private fun GalleryAlbumPickerDialog(
+    image: GalleryImage,
+    albums: List<GalleryAlbum>,
+    onSelect: (GalleryAlbum) -> Unit,
+    onCreate: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.gallery_add_to_album)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (albums.isEmpty()) {
+                    Text(
+                        stringResource(R.string.gallery_no_albums),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 280.dp)) {
+                        items(albums, key = { it.id }) { album ->
+                            TextButton(
+                                onClick = { onSelect(album) },
+                                enabled = album.id !in image.albumIds,
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Text(
+                                    text = album.name,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    }
+                }
+                TextButton(onClick = onCreate, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Rounded.Add, contentDescription = null)
+                    Text(
+                        stringResource(R.string.gallery_create_album),
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
+}
+
+@Composable
+private fun GalleryCreateAlbumDialog(
+    onCreate: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.gallery_create_album)) },
+        text = {
+            TextField(
+                value = name,
+                onValueChange = { if (it.length <= 80) name = it },
+                label = { Text(stringResource(R.string.gallery_album_name)) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(name.trim()) },
+                enabled = name.isNotBlank(),
+            ) {
+                Text(stringResource(R.string.gallery_create))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
+        },
+    )
 }
 
 @Composable
@@ -431,16 +988,83 @@ private fun galleryBitmap(
     }
 }
 
-private fun Modifier.galleryTransformGestures(
+private fun Modifier.galleryViewerGestures(
     imageId: String,
     scale: Float,
     translation: Offset,
     onTransform: (Float, Offset) -> Unit,
+    onSwipe: (Int) -> Unit,
 ): Modifier = pointerInput(imageId, scale, translation) {
-    detectTransformGestures { _, pan, zoom, _ ->
-        val nextScale = (scale * zoom).coerceIn(1f, 5f)
-        val nextTranslation = if (nextScale <= 1.01f) Offset.Zero else translation + pan
-        if (zoom != 1f || pan != Offset.Zero) onTransform(nextScale, nextTranslation)
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+
+        var localScale = scale
+        var localTranslation = translation
+        var previousCentroid: Offset? = null
+        var previousSpan: Float? = null
+        var horizontalDrag = 0f
+        var verticalDrag = 0f
+        var multiTouch = false
+
+        while (true) {
+            val event = awaitPointerEvent()
+            val pressed = event.changes.filter { it.pressed }
+            if (pressed.isEmpty()) break
+
+            if (pressed.size >= 2) {
+                multiTouch = true
+                val first = pressed[0]
+                val second = pressed[1]
+                val centroid = Offset(
+                    (first.position.x + second.position.x) / 2f,
+                    (first.position.y + second.position.y) / 2f,
+                )
+                val span = (first.position - second.position).getDistance()
+                val oldCentroid = previousCentroid
+                val oldSpan = previousSpan
+
+                if (oldCentroid != null && oldSpan != null && oldSpan > 0f) {
+                    val zoom = span / oldSpan
+                    val nextScale = (localScale * zoom).coerceIn(1f, 5f)
+                    val pan = centroid - oldCentroid
+                    localTranslation = if (nextScale <= 1.01f) {
+                        Offset.Zero
+                    } else {
+                        localTranslation + pan
+                    }
+                    localScale = nextScale
+                    onTransform(localScale, localTranslation)
+                }
+
+                previousCentroid = centroid
+                previousSpan = span
+                pressed.forEach { it.consume() }
+            } else {
+                previousCentroid = null
+                previousSpan = null
+                val change = pressed.first()
+                val delta = change.positionChange()
+
+                if (localScale > 1.01f) {
+                    localTranslation += delta
+                    onTransform(localScale, localTranslation)
+                    change.consume()
+                } else if (!multiTouch) {
+                    horizontalDrag += delta.x
+                    verticalDrag += delta.y
+                    if (abs(delta.x) > abs(delta.y)) change.consume()
+                }
+            }
+        }
+
+        if (
+            !multiTouch &&
+            localScale <= 1.01f &&
+            abs(horizontalDrag) > 120f &&
+            abs(horizontalDrag) > abs(verticalDrag) * 1.2f
+        ) {
+            onSwipe(if (horizontalDrag < 0f) 1 else -1)
+        }
     }
 }
 

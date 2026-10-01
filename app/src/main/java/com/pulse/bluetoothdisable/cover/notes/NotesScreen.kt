@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Star
@@ -31,6 +32,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -38,6 +40,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -175,12 +179,17 @@ fun NotesScreen(
             topBar = {
                 TopAppBar(
                     navigationIcon = {
-                        TextButton(
+                        IconButton(
                             onClick = {
                                 if (inlineEditing) viewModel.closeEditor() else viewModel.closeNote()
                             },
                             enabled = !state.busy,
-                        ) { Text("‹") }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = stringResource(R.string.notes_back),
+                            )
+                        }
                     },
                     title = {
                         Text(
@@ -212,23 +221,42 @@ fun NotesScreen(
                     verticalArrangement = Arrangement.spacedBy(18.dp),
                 ) {
                     if (inlineEditing) {
-                        OutlinedTextField(
+                        val titleContainer = MaterialTheme.colorScheme.surfaceContainerLow
+                        TextField(
                             value = inlineTitle,
                             onValueChange = {
                                 if (it.length <= NotesPolicy.MAX_TITLE_LENGTH) inlineTitle = it
                             },
                             enabled = !state.busy,
-                            label = { Text(stringResource(R.string.notes_title_label)) },
+                            placeholder = { Text(stringResource(R.string.notes_title_label)) },
                             singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = titleContainer,
+                                unfocusedContainerColor = titleContainer,
+                                disabledContainerColor = titleContainer,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                            ),
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedTextField(
+                        TextField(
                             value = inlineBody,
                             onValueChange = {
                                 if (it.length <= NotesPolicy.MAX_BODY_LENGTH) inlineBody = it
                             },
                             enabled = !state.busy,
-                            label = { Text(stringResource(R.string.notes_body_label)) },
+                            placeholder = { Text(stringResource(R.string.notes_body_label)) },
+                            shape = RoundedCornerShape(0.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                            ),
                             modifier = Modifier.fillMaxWidth().weight(1f),
                         )
                         if (state.storageError) {
@@ -251,7 +279,9 @@ fun NotesScreen(
                                 .weight(1f)
                                 .pointerInput(selected.id, state.busy) {
                                     detectTapGestures {
-                                        if (!state.busy) showNoteActions = true
+                                        if (!state.busy) {
+                                            showNoteActions = !showNoteActions
+                                        }
                                     }
                                 },
                         )
