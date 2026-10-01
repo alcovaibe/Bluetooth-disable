@@ -51,6 +51,15 @@ fun NotesScreen(
 ) {
     val state = viewModel.uiState
     val selected = state.selectedNoteId?.let { id -> state.notes.firstOrNull { it.id == id } }
+    val inlineEditing = selected != null &&
+        state.editorOpen &&
+        state.editingNote?.id == selected.id
+    var inlineTitle by remember(selected?.id, inlineEditing) {
+        mutableStateOf(selected?.title.orEmpty())
+    }
+    var inlineBody by remember(selected?.id, inlineEditing) {
+        mutableStateOf(selected?.body.orEmpty())
+    }
     var deleting by remember { mutableStateOf<LocalNote?>(null) }
     var showGenerate by remember { mutableStateOf(false) }
 
@@ -110,21 +119,42 @@ fun NotesScreen(
             topBar = {
                 TopAppBar(
                     navigationIcon = {
-                        TextButton(onClick = viewModel::closeNote) { Text("‹") }
+                        TextButton(
+                            onClick = {
+                                if (inlineEditing) viewModel.closeEditor() else viewModel.closeNote()
+                            },
+                            enabled = !state.busy,
+                        ) { Text("‹") }
                     },
                     title = {
                         Text(
-                            selected.title.ifBlank { stringResource(R.string.notes_note) },
+                            (if (inlineEditing) inlineTitle else selected.title)
+                                .ifBlank { stringResource(R.string.notes_note) },
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
                     },
                     actions = {
-                        TextButton(onClick = { viewModel.setPinned(selected, !selected.pinned) }, enabled = !state.busy) {
-                            Text(stringResource(if (selected.pinned) R.string.notes_unpin else R.string.notes_pin))
-                        }
-                        TextButton(onClick = { viewModel.edit(selected) }, enabled = !state.busy) {
-                            Text(stringResource(R.string.notes_edit))
+                        if (inlineEditing) {
+                            TextButton(onClick = viewModel::closeEditor, enabled = !state.busy) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            TextButton(
+                                onClick = { viewModel.save(inlineTitle, inlineBody) },
+                                enabled = NotesPolicy.isValid(inlineTitle, inlineBody) && !state.busy,
+                            ) {
+                                Text(stringResource(R.string.notes_save))
+                            }
+                        } else {
+                            TextButton(
+                                onClick = { viewModel.setPinned(selected, !selected.pinned) },
+                                enabled = !state.busy,
+                            ) {
+                                Text(stringResource(if (selected.pinned) R.string.notes_unpin else R.string.notes_pin))
+                            }
+                            TextButton(onClick = { viewModel.edit(selected) }, enabled = !state.busy) {
+                                Text(stringResource(R.string.notes_edit))
+                            }
                         }
                     },
                 )
@@ -134,14 +164,42 @@ fun NotesScreen(
                 modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                if (selected.title.isNotBlank()) {
-                    Text(selected.title, style = MaterialTheme.typography.headlineSmall)
+                if (inlineEditing) {
+                    OutlinedTextField(
+                        value = inlineTitle,
+                        onValueChange = {
+                            if (it.length <= NotesPolicy.MAX_TITLE_LENGTH) inlineTitle = it
+                        },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.notes_title_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    OutlinedTextField(
+                        value = inlineBody,
+                        onValueChange = {
+                            if (it.length <= NotesPolicy.MAX_BODY_LENGTH) inlineBody = it
+                        },
+                        enabled = !state.busy,
+                        label = { Text(stringResource(R.string.notes_body_label)) },
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
+                    if (state.storageError) {
+                        Text(
+                            stringResource(R.string.notes_storage_error),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                } else {
+                    if (selected.title.isNotBlank()) {
+                        Text(selected.title, style = MaterialTheme.typography.headlineSmall)
+                    }
+                    SecretAwareBody(
+                        text = selected.body,
+                        onTap = { offset -> viewModel.tap(selected, offset, onUnlock) },
+                    )
+                    Spacer(Modifier.weight(1f))
                 }
-                SecretAwareBody(
-                    text = selected.body,
-                    onTap = { offset -> viewModel.tap(selected, offset, onUnlock) },
-                )
-                Spacer(Modifier.weight(1f))
                 TextButton(onClick = { deleting = selected }, enabled = !state.busy) {
                     Text(stringResource(R.string.notes_delete), color = MaterialTheme.colorScheme.error)
                 }
@@ -149,9 +207,9 @@ fun NotesScreen(
         }
     }
 
-    if (state.editorOpen) {
+    if (state.editorOpen && state.editingNote == null) {
         NoteEditorDialog(
-            note = state.editingNote,
+            note = null,
             busy = state.busy,
             onSave = viewModel::save,
             onDismiss = viewModel::closeEditor,
