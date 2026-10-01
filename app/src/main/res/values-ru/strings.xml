@@ -123,8 +123,8 @@
     <string name="notes_delete">Удалить</string>
     <string name="notes_delete_note">Удалить заметку?</string>
     <string name="notes_delete_confirmation">Эта заметка будет удалена.</string>
-    <string name="notes_pin">Закрепить</string>
-    <string name="notes_unpin">Открепить</string>
+    <string name="notes_pin">Избранное</string>
+    <string name="notes_unpin">Убрать из избранного</string>
     <string name="notes_title_label">Заголовок</string>
     <string name="notes_body_label">Текст заметки</string>
     <string name="notes_save">Сохранить</string>
