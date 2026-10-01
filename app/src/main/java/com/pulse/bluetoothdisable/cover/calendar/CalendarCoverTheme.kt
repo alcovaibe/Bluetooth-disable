@@ -24,5 +24,5 @@ internal fun CalendarCoverTheme(activity: Activity, content: @Composable () -> U
             isAppearanceLightNavigationBars = !darkTheme
         }
     }
-    BluetoothDisableTheme(darkTheme = darkTheme, content = content)
+    BluetoothDisableTheme(darkTheme = darkTheme, dynamicColor = false, content = content)
 }
