@@ -2,6 +2,11 @@ name: Android CI (PR)
 
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - 'LICENSE.*'
 
 permissions:
   contents: read
