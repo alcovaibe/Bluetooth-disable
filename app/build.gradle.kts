@@ -41,8 +41,8 @@ android {
         applicationId = "com.pulse.bluetoothdisable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 14
-        versionName = "1.0.12"
+        versionCode = 15
+        versionName = "1.0.13"
 
         buildConfigField("String", "APP_VERSION", "\"$versionName\"")
 
@@ -102,6 +102,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.biometric)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)

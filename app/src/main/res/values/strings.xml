@@ -123,8 +123,8 @@
     <string name="notes_delete">Delete</string>
     <string name="notes_delete_note">Delete note?</string>
     <string name="notes_delete_confirmation">This note will be deleted.</string>
-    <string name="notes_pin">Pin</string>
-    <string name="notes_unpin">Unpin</string>
+    <string name="notes_pin">Favorite</string>
+    <string name="notes_unpin">Remove from favorites</string>
     <string name="notes_title_label">Title</string>
     <string name="notes_body_label">Note</string>
     <string name="notes_save">Save</string>
