@@ -2,4 +2,13 @@
 <resources>
 
     <style name="Theme.BluetoothDisable" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+        Fallback cover themes for Android 8-11. Android 12+ overrides these
+        in values-v31 to provide the matching system splash-screen icon.
+    -->
+    <style name="Theme.BluetoothDisable.Cover.Calculator" parent="Theme.BluetoothDisable" />
+    <style name="Theme.BluetoothDisable.Cover.Calendar" parent="Theme.BluetoothDisable" />
+    <style name="Theme.BluetoothDisable.Cover.Notes" parent="Theme.BluetoothDisable" />
+    <style name="Theme.BluetoothDisable.Cover.Gallery" parent="Theme.BluetoothDisable" />
 </resources>
