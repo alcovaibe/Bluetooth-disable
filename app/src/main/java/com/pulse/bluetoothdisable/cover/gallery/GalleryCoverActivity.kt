@@ -6,10 +6,8 @@ import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,8 +24,9 @@ import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
 import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
+import com.pulse.bluetoothdisable.cover.CoverTheme
+import com.pulse.bluetoothdisable.cover.enableCoverEdgeToEdge
 import com.pulse.bluetoothdisable.localization.LanguageManager
-import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 class GalleryCoverActivity : FragmentActivity() {
     private lateinit var viewModel: GalleryViewModel
@@ -55,7 +54,7 @@ class GalleryCoverActivity : FragmentActivity() {
             return
         }
 
-        enableEdgeToEdge()
+        enableCoverEdgeToEdge()
         recovery = CoverRecoveryManager(
             activeMode = modes::activeMode,
             resetCover = modes::resetGalleryCover,
@@ -66,7 +65,7 @@ class GalleryCoverActivity : FragmentActivity() {
         viewModel = ViewModelProvider(this)[GalleryViewModel::class.java]
 
         setContent {
-            BluetoothDisableTheme(darkTheme = isSystemInDarkTheme()) {
+            CoverTheme(this) {
                 GalleryScreen(
                     viewModel = viewModel,
                     recoveryEnabled = resumed && recoveryState == CoverRecoveryManager.State.IDLE,

@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,6 +22,7 @@ import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
 import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
+import com.pulse.bluetoothdisable.cover.enableCoverEdgeToEdge
 import com.pulse.bluetoothdisable.localization.LanguageManager
 
 class CalendarCoverActivity : FragmentActivity() {
@@ -45,7 +45,8 @@ class CalendarCoverActivity : FragmentActivity() {
             finish()
             return
         }
-        enableEdgeToEdge()
+
+        enableCoverEdgeToEdge()
         val modes = CoverModeManager(this)
         recovery = CoverRecoveryManager(
             activeMode = modes::activeMode,
@@ -55,6 +56,7 @@ class CalendarCoverActivity : FragmentActivity() {
         )
         authenticator = CoverDeviceAuthenticator(this)
         viewModel = ViewModelProvider(this)[CalendarViewModel::class.java]
+
         setContent {
             CalendarCoverTheme(this) {
                 CalendarScreen(

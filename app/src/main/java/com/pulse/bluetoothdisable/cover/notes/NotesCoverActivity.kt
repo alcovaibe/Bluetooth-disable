@@ -6,8 +6,6 @@ import android.os.Bundle
 import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -24,8 +22,9 @@ import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
 import com.pulse.bluetoothdisable.cover.CoverRecoveryManager
+import com.pulse.bluetoothdisable.cover.CoverTheme
+import com.pulse.bluetoothdisable.cover.enableCoverEdgeToEdge
 import com.pulse.bluetoothdisable.localization.LanguageManager
-import com.pulse.bluetoothdisable.ui.theme.BluetoothDisableTheme
 
 class NotesCoverActivity : FragmentActivity() {
     private lateinit var viewModel: NotesViewModel
@@ -49,7 +48,7 @@ class NotesCoverActivity : FragmentActivity() {
             return
         }
 
-        enableEdgeToEdge()
+        enableCoverEdgeToEdge()
         recovery = CoverRecoveryManager(
             activeMode = modes::activeMode,
             resetCover = modes::resetNotesCover,
@@ -60,7 +59,7 @@ class NotesCoverActivity : FragmentActivity() {
         viewModel = ViewModelProvider(this)[NotesViewModel::class.java]
 
         setContent {
-            BluetoothDisableTheme(darkTheme = isSystemInDarkTheme()) {
+            CoverTheme(this) {
                 NotesScreen(
                     viewModel = viewModel,
                     recoveryEnabled = resumed && recoveryState == CoverRecoveryManager.State.IDLE,
