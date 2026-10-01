@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.BluetoothDisable.Cover.Calculator" parent="Theme.BluetoothDisable">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/calculator_icon</item>
+    </style>
+
+    <style name="Theme.BluetoothDisable.Cover.Calendar" parent="Theme.BluetoothDisable">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/calendar_icon</item>
+    </style>
+
+    <style name="Theme.BluetoothDisable.Cover.Notes" parent="Theme.BluetoothDisable">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/notes_icon</item>
+    </style>
+
+    <style name="Theme.BluetoothDisable.Cover.Gallery" parent="Theme.BluetoothDisable">
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/gallery_icon</item>
+    </style>
+</resources>
