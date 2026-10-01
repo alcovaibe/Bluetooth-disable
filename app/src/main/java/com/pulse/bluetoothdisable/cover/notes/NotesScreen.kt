@@ -26,6 +26,8 @@ import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -53,6 +55,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.coverRecoveryHold
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+private const val GENERATE_HOLD_MILLIS = 3_000L
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,6 +82,7 @@ fun NotesScreen(
     }
     var deleting by remember { mutableStateOf<LocalNote?>(null) }
     var showGenerate by remember { mutableStateOf(false) }
+    var showGenerateMenu by remember { mutableStateOf(false) }
     var showNoteActions by remember(selected?.id) { mutableStateOf(false) }
 
     if (selected == null) {
@@ -87,16 +95,50 @@ fun NotesScreen(
                             modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold),
                         )
                     },
-                    actions = {
-                        TextButton(onClick = { showGenerate = true }, enabled = !state.busy) {
-                            Text(stringResource(R.string.notes_generate))
-                        }
-                    },
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = viewModel::add) {
-                    Text("+", style = MaterialTheme.typography.headlineMedium)
+                Box {
+                    FloatingActionButton(
+                        onClick = {},
+                        modifier = Modifier.pointerInput(state.busy) {
+                            detectTapGestures(
+                                onPress = {
+                                    if (state.busy) {
+                                        tryAwaitRelease()
+                                    } else {
+                                        var holdTriggered = false
+                                        coroutineScope {
+                                            val holdJob = launch {
+                                                delay(GENERATE_HOLD_MILLIS)
+                                                holdTriggered = true
+                                                showGenerateMenu = true
+                                            }
+                                            val released = tryAwaitRelease()
+                                            holdJob.cancel()
+                                            if (released && !holdTriggered) {
+                                                viewModel.add()
+                                            }
+                                        }
+                                    }
+                                },
+                            )
+                        },
+                    ) {
+                        Text("+", style = MaterialTheme.typography.headlineMedium)
+                    }
+                    DropdownMenu(
+                        expanded = showGenerateMenu,
+                        onDismissRequest = { showGenerateMenu = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.notes_generate)) },
+                            onClick = {
+                                showGenerateMenu = false
+                                showGenerate = true
+                            },
+                        )
+                    }
                 }
             },
         ) { padding ->
