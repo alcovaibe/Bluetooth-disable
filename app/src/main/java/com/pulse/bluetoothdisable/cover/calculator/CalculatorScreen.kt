@@ -33,7 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,7 +51,7 @@ fun CalculatorScreen(
     onRecoveryHold: () -> Unit = {},
 ) {
     val state = viewModel.uiState
-    val useComma = LocalConfiguration.current.locales[0].language == "ru"
+    val useComma = true
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -63,7 +62,9 @@ fun CalculatorScreen(
                 history = state.history,
                 useComma = useComma,
                 onClear = viewModel::clearHistory,
-                recoveryEnabled = recoveryEnabled && drawerState.isOpen && !drawerState.isAnimationRunning,
+                // Keep the listener armed while the Activity is eligible for recovery. Gating it
+                // on drawer animation state made holds started during opening silently fail.
+                recoveryEnabled = recoveryEnabled,
                 onRecoveryHold = onRecoveryHold,
             )
         },
