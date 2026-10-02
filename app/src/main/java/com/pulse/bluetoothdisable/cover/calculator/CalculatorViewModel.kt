@@ -29,12 +29,17 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun inputDigit(digit: Char) {
         if (!digit.isDigit()) return
-        val base = uiState.expression
-        updateExpression(base + digit, clearPrevious = uiState.afterResult)
+        val recoveringFromError = uiState.error != null
+        val base = if (recoveringFromError) "" else uiState.expression
+        updateExpression(
+            base + digit,
+            clearPrevious = uiState.afterResult || recoveringFromError,
+        )
     }
 
     fun inputDecimal() {
-        var base = if (uiState.afterResult) "" else uiState.expression
+        val recoveringFromError = uiState.error != null
+        var base = if (uiState.afterResult || recoveringFromError) "" else uiState.expression
         val currentNumber = base.takeLastWhile { it.isDigit() || it == '.' }
         if (currentNumber.contains('.')) return
 
@@ -45,11 +50,15 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         } else {
             return
         }
-        updateExpression(base, clearPrevious = uiState.afterResult)
+        updateExpression(
+            base,
+            clearPrevious = uiState.afterResult || recoveringFromError,
+        )
     }
 
     fun inputOperator(operator: Char) {
         if (operator !in charArrayOf('+', '-', '×', '÷')) return
+        if (uiState.error != null) return
         var expression = uiState.expression
 
         if (uiState.afterResult) {
@@ -95,7 +104,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun inputPercent() {
-        if (uiState.afterResult) return
+        if (uiState.afterResult || uiState.error != null) return
         val expression = uiState.expression
         if (expression.isNotEmpty() &&
             (expression.last().isDigit() || expression.last() == ')')
@@ -105,7 +114,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun inputParenthesis() {
-        if (uiState.afterResult) {
+        if (uiState.afterResult || uiState.error != null) {
             updateExpression("(", clearPrevious = true)
             return
         }
@@ -131,7 +140,11 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         repeatOperation = null
         uiState = uiState.copy(
             expression = updated,
-            previousExpression = if (uiState.afterResult) "" else uiState.previousExpression,
+            previousExpression = if (uiState.afterResult || uiState.error != null) {
+                ""
+            } else {
+                uiState.previousExpression
+            },
             display = updated.ifEmpty { "0" },
             error = null,
             afterResult = false,
@@ -149,6 +162,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun equalsPressed(): Boolean {
+        if (uiState.error != null) return false
         if (uiState.afterResult) {
             val operation = repeatOperation ?: return false
             return repeatEquals(operation)
