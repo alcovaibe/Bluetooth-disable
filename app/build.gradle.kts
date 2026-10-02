@@ -35,14 +35,14 @@ val hasReleaseSigningConfig = listOf(
 
 android {
     namespace = "com.pulse.bluetoothdisable"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.pulse.bluetoothdisable"
         minSdk = 26
         targetSdk = 36
-        versionCode = 18
-        versionName = "1.0.16"
+        versionCode = 19
+        versionName = "1.0.17"
 
         buildConfigField("String", "APP_VERSION", "\"$versionName\"")
 
@@ -62,6 +62,13 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+
             if (hasReleaseSigningConfig) {
                 signingConfig = signingConfigs.getByName("release")
             } else if (releaseSigningRequested) {
@@ -69,10 +76,6 @@ android {
                     "Release signing is not configured. " +
                         "Use local keystore.properties or RELEASE_* environment variables.",
                 )
-            }
-
-            optimization {
-                enable = false
             }
         }
     }
