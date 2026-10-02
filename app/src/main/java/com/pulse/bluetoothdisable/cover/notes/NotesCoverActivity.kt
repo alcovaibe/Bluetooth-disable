@@ -59,7 +59,9 @@ class NotesCoverActivity : FragmentActivity() {
         viewModel = ViewModelProvider(this)[NotesViewModel::class.java]
 
         setContent {
-            CoverTheme(this) {
+            // Keep the Notes disguise visually stable instead of inheriting wallpaper-dependent
+            // Material You colours that make the cover look unrelated between devices.
+            CoverTheme(this, dynamicColor = false) {
                 NotesScreen(
                     viewModel = viewModel,
                     recoveryEnabled = resumed && recoveryState == CoverRecoveryManager.State.IDLE,
@@ -112,6 +114,7 @@ class NotesCoverActivity : FragmentActivity() {
 
     override fun onPause() {
         resumed = false
+        if (::viewModel.isInitialized) viewModel.flushEditor()
         if (::recovery.isInitialized && recovery.state == CoverRecoveryManager.State.CONFIRMING) recovery.cancel()
         super.onPause()
     }
@@ -127,6 +130,7 @@ class NotesCoverActivity : FragmentActivity() {
         setIntent(intent)
         if (::recovery.isInitialized) recovery.cancel()
         if (::viewModel.isInitialized) {
+            viewModel.flushEditor()
             viewModel.resetTransientUi()
             viewModel.refresh()
         }
