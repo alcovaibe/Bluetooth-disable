@@ -116,7 +116,8 @@ fun CalculatorHistoryDrawer(
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .testTag("calculator_history_clear"),
         ) {
             Text(
                 text = stringResource(R.string.calculator_clear_history),
@@ -141,6 +142,7 @@ fun CalculatorHistoryDrawer(
                         showClearConfirmation = false
                         onClear()
                     },
+                    modifier = Modifier.testTag("calculator_history_clear_confirm"),
                 ) {
                     Text(stringResource(R.string.calculator_clear_history))
                 }
