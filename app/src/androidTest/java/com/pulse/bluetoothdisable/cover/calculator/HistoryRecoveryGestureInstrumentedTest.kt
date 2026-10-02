@@ -81,8 +81,7 @@ class HistoryRecoveryGestureInstrumentedTest {
         advanceHold(3_200)
         assertEquals(0, calls.get())
         clear.performTouchInput { up() }
-        compose.waitForIdle()
-        compose.onNodeWithText(context.getString(R.string.cancel)).performClick()
+        assertEquals(0, calls.get())
     }
 
     @Test fun threeSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
@@ -138,13 +137,16 @@ class HistoryRecoveryGestureInstrumentedTest {
 
     @Test fun clearHistoryRequiresExplicitConfirmation() {
         showHistory()
+        compose.mainClock.autoAdvance = true
 
         compose.onNodeWithTag("calculator_history_clear").performClick()
+        compose.waitForIdle()
         compose.runOnIdle {
             assertEquals(listOf(CalculatorHistoryEntry("1+1", "2")), history.value)
         }
 
         compose.onNodeWithTag("calculator_history_clear_confirm").performClick()
+        compose.waitForIdle()
         compose.runOnIdle { assertEquals(emptyList<CalculatorHistoryEntry>(), history.value) }
     }
 }
