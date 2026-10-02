@@ -23,9 +23,8 @@ class LocalNotesRepository(context: Context) {
     private val imageDir = File(appContext.filesDir, IMAGE_DIR_NAME).apply { mkdirs() }
 
     fun notes(): List<LocalNote> = synchronized(lock) {
-        val notes = readNotes()
-        cleanupOrphanImages(notes)
-        notes
+        cleanupTemporaryImages()
+        readNotes()
     }
 
     /** Backward-compatible save API used by Notes Cover setup and generated notes. */
@@ -68,9 +67,7 @@ class LocalNotesRepository(context: Context) {
 
     fun delete(id: String) = synchronized(lock) {
         val notes = readNotes()
-        val deleted = notes.firstOrNull { it.id == id }
         writeNotes(notes.filterNot { it.id == id })
-        deleted?.images?.forEach { deleteImageFile(it.fileName) }
     }
 
     fun setFavorite(id: String, favorite: Boolean): LocalNote = synchronized(lock) {
@@ -112,7 +109,10 @@ class LocalNotesRepository(context: Context) {
     fun imageFile(image: NoteImage): File? =
         File(imageDir, image.fileName).takeIf { it.exists() && it.isFile }
 
-    fun deleteImage(image: NoteImage) = synchronized(lock) { deleteImageFile(image.fileName) }
+    /** Remove files that are not referenced by the durable encrypted metadata. */
+    fun cleanupOrphans() = synchronized(lock) {
+        cleanupOrphanImages(readNotes())
+    }
 
     /** Test/reset helper only. Normal Cover Mode transitions must never call this. */
     internal fun clear() = synchronized(lock) {
@@ -128,10 +128,6 @@ class LocalNotesRepository(context: Context) {
         notes.removeAll { it.id == normalized.id }
         notes.add(normalized)
         writeNotes(notes)
-        val retained = normalized.images.mapTo(mutableSetOf()) { it.fileName }
-        previous?.images
-            ?.filterNot { it.fileName in retained }
-            ?.forEach { deleteImageFile(it.fileName) }
         return normalized
     }
 
@@ -212,6 +208,9 @@ class LocalNotesRepository(context: Context) {
         try {
             stream.write(encrypted)
             file.finishWrite(stream)
+            // Cleanup happens only after the new metadata is durable. Doing it from notes() could
+            // race a newly imported image before its metadata update reached disk.
+            cleanupOrphanImages(notes)
         } catch (error: Exception) {
             file.failWrite(stream)
             throw error
@@ -241,16 +240,17 @@ class LocalNotesRepository(context: Context) {
         })
     }
 
+    private fun cleanupTemporaryImages() {
+        imageDir.listFiles()?.filter { it.name.endsWith(".tmp") }?.forEach(File::delete)
+    }
+
     private fun cleanupOrphanImages(notes: List<LocalNote>) {
         val referenced = notes.flatMapTo(mutableSetOf()) { note -> note.images.map { it.fileName } }
         imageDir.listFiles()?.forEach { candidate ->
-            if (candidate.isFile && !candidate.name.endsWith(".tmp") && candidate.name !in referenced) candidate.delete()
-            else if (candidate.name.endsWith(".tmp")) candidate.delete()
+            if (candidate.name.endsWith(".tmp") || (candidate.isFile && candidate.name !in referenced)) {
+                candidate.delete()
+            }
         }
-    }
-
-    private fun deleteImageFile(fileName: String) {
-        File(imageDir, fileName).takeIf { it.parentFile == imageDir }?.delete()
     }
 
     companion object {
