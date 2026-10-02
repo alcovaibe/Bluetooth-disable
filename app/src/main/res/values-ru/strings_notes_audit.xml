@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notes_count">Заметок: %1$d</string>
+    <string name="notes_empty_hint">Нажмите +, чтобы создать заметку, или кнопку списка для чек-листа.</string>
+    <string name="notes_new_checklist">Новый чек-лист</string>
+    <string name="notes_favorite">Избранное</string>
+    <string name="notes_images_count">Изображений: %1$d</string>
+    <string name="notes_last_edited">Изменено %1$s</string>
+    <string name="notes_autosave_hint">Изменения сохраняются автоматически.</string>
+    <string name="notes_add_image">Добавить изображение</string>
+    <string name="notes_image">Изображение заметки</string>
+    <string name="notes_image_unavailable">Изображение недоступно</string>
+    <string name="notes_images_in_note">Изображения</string>
+    <string name="notes_image_position">Вставлено в позицию текста %1$d</string>
+    <string name="notes_checklist_item">Пункт списка</string>
+    <string name="notes_add_checklist_item">Добавить пункт</string>
+    <string name="notes_format_bold">Полужирный</string>
+    <string name="notes_format_italic">Курсив</string>
+    <string name="notes_format_underline">Подчёркивание</string>
+    <string name="notes_format_strike">Зачёркивание</string>
+    <string name="notes_hidden_access_warning_title">Заметка скрытого входа</string>
+    <string name="notes_hidden_access_edit_warning">В этой заметке находится скрытый фрагмент входа. Изменение текста рядом с ним может сделать скрытый вход недействительным. Аварийный сброс удержанием + в течение 3 секунд останется доступен.</string>
+    <string name="notes_hidden_access_delete_warning">В этой заметке находится скрытый фрагмент входа. При удалении заметки скрытый вход будет удалён. Аварийный сброс удержанием + в течение 3 секунд останется доступен.</string>
+</resources>
