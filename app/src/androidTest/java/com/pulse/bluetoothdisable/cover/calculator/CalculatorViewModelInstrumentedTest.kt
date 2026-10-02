@@ -98,6 +98,21 @@ class CalculatorViewModelInstrumentedTest {
     }
 
     @Test
+    fun digitAfterErrorStartsFreshExpression() {
+        val viewModel = newViewModel()
+        enter(viewModel, '1', '÷', '0')
+        viewModel.equalsPressed()
+        assertEquals(CalculatorEngineError.DIVISION_BY_ZERO, viewModel.uiState.error)
+
+        viewModel.inputDigit('7')
+
+        assertEquals(null, viewModel.uiState.error)
+        assertEquals("7", viewModel.uiState.expression)
+        assertEquals("7", viewModel.uiState.display)
+        assertEquals("", viewModel.uiState.previousExpression)
+    }
+
+    @Test
     fun unfinishedExpressionDoesNotSurviveNewViewModel() {
         val first = newViewModel()
         first.inputDigit('1')
