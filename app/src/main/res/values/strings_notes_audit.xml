@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notes_count">%1$d notes</string>
+    <string name="notes_empty_hint">Tap + to create a note, or use the checklist button.</string>
+    <string name="notes_new_checklist">New checklist</string>
+    <string name="notes_favorite">Favorite</string>
+    <string name="notes_images_count">%1$d images</string>
+    <string name="notes_last_edited">Edited %1$s</string>
+    <string name="notes_autosave_hint">Changes are saved automatically.</string>
+    <string name="notes_add_image">Add image</string>
+    <string name="notes_image">Note image</string>
+    <string name="notes_image_unavailable">Image unavailable</string>
+    <string name="notes_images_in_note">Images</string>
+    <string name="notes_image_position">Inserted at text position %1$d</string>
+    <string name="notes_checklist_item">List item</string>
+    <string name="notes_add_checklist_item">Add item</string>
+    <string name="notes_format_bold">Bold</string>
+    <string name="notes_format_italic">Italic</string>
+    <string name="notes_format_underline">Underline</string>
+    <string name="notes_format_strike">Strikethrough</string>
+    <string name="notes_hidden_access_warning_title">Hidden access note</string>
+    <string name="notes_hidden_access_edit_warning">This note contains the hidden entry fragment. Editing text around that fragment can invalidate hidden access. Emergency reset by holding + for 3 seconds will remain available.</string>
+    <string name="notes_hidden_access_delete_warning">This note contains the hidden entry fragment. Deleting it will remove hidden access. Emergency reset by holding + for 3 seconds will remain available.</string>
+</resources>
