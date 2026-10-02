@@ -12,6 +12,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,10 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -69,6 +68,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -98,15 +98,16 @@ import androidx.compose.ui.unit.dp
 import androidx.exifinterface.media.ExifInterface
 import com.pulse.bluetoothdisable.R
 import java.io.File
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val NOTES_RECOVERY_HOLD_MILLIS = 3_000L
 
 private enum class SecretAction { EDIT, DELETE }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesScreen(
     viewModel: NotesViewModel,
@@ -172,10 +173,12 @@ fun NotesScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    secretAction = null
-                    if (action == SecretAction.EDIT) viewModel.edit(note) else deleting = note
-                }) { Text(stringResource(R.string.continue_action)) }
+                TextButton(
+                    onClick = {
+                        secretAction = null
+                        if (action == SecretAction.EDIT) viewModel.edit(note) else deleting = note
+                    },
+                ) { Text(stringResource(R.string.continue_action)) }
             },
             dismissButton = {
                 TextButton(onClick = { secretAction = null }) { Text(stringResource(R.string.cancel)) }
@@ -189,10 +192,12 @@ fun NotesScreen(
             title = { Text(stringResource(R.string.notes_delete_note)) },
             text = { Text(stringResource(R.string.notes_delete_confirmation)) },
             confirmButton = {
-                TextButton(onClick = {
-                    deleting = null
-                    viewModel.delete(note)
-                }) {
+                TextButton(
+                    onClick = {
+                        deleting = null
+                        viewModel.delete(note)
+                    },
+                ) {
                     Text(stringResource(R.string.notes_delete), color = MaterialTheme.colorScheme.error)
                 }
             },
@@ -216,6 +221,12 @@ private fun NotesListScreen(
 ) {
     var suppressNextClick by remember { mutableStateOf(false) }
 
+    // If authentication/confirmation temporarily disables the hold listener and later returns to
+    // idle, make sure a cancelled long hold cannot eat the user's next ordinary tap.
+    LaunchedEffect(recoveryEnabled) {
+        if (recoveryEnabled) suppressNextClick = false
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -233,7 +244,10 @@ private fun NotesListScreen(
                 },
                 actions = {
                     IconButton(onClick = onAddChecklist, enabled = !state.busy) {
-                        Icon(Icons.Rounded.Checklist, contentDescription = stringResource(R.string.notes_new_checklist))
+                        Icon(
+                            Icons.Rounded.Checklist,
+                            contentDescription = stringResource(R.string.notes_new_checklist),
+                        )
                     }
                 },
             )
@@ -249,7 +263,6 @@ private fun NotesListScreen(
                         suppressNextClick = true
                         onRecoveryHold()
                     },
-                    onLongRelease = { suppressNextClick = false },
                 ),
             ) {
                 Icon(Icons.Rounded.Add, contentDescription = stringResource(R.string.notes_add))
@@ -282,7 +295,11 @@ private fun NotesListScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(state.notes, key = { it.id }) { note ->
+                    items(
+                        count = state.notes.size,
+                        key = { index -> state.notes[index].id },
+                    ) { index ->
+                        val note = state.notes[index]
                         NoteGridCard(note = note, onClick = { onOpen(note) })
                     }
                 }
@@ -363,7 +380,10 @@ private fun NoteDetailScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.notes_back))
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.notes_back),
+                        )
                     }
                 },
                 title = {
@@ -394,43 +414,13 @@ private fun NoteDetailScreen(
                 item { Text(note.title, style = MaterialTheme.typography.headlineSmall) }
             }
             when (note.type) {
-                NoteType.TEXT -> {
-                    val sortedImages = note.images.sortedBy { it.offset }
-                    var cursor = 0
-                    sortedImages.forEach { image ->
-                        val end = image.offset.coerceIn(cursor, note.body.length)
-                        if (end > cursor) {
-                            val from = cursor
-                            val to = end
-                            item(key = "text-$from-$to") {
-                                RichTextSegment(
-                                    note = note,
-                                    start = from,
-                                    end = to,
-                                    onTap = { offset -> viewModel.tap(note, offset, onUnlock) },
-                                )
-                            }
-                        }
-                        item(key = "image-${image.id}") {
-                            NoteImagePreview(file = viewModel.imageFile(image), modifier = Modifier.fillMaxWidth())
-                        }
-                        cursor = end
-                    }
-                    if (cursor < note.body.length || (note.body.isEmpty() && note.images.isEmpty())) {
-                        val from = cursor
-                        val to = note.body.length
-                        item(key = "text-tail-$from-$to") {
-                            RichTextSegment(
-                                note = note,
-                                start = from,
-                                end = to,
-                                onTap = { offset -> viewModel.tap(note, offset, onUnlock) },
-                            )
-                        }
-                    }
-                }
+                NoteType.TEXT -> addRichTextItems(note, viewModel, onUnlock)
                 NoteType.CHECKLIST -> {
-                    items(note.checklist, key = { it.id }) { row ->
+                    items(
+                        count = note.checklist.size,
+                        key = { index -> note.checklist[index].id },
+                    ) { index ->
+                        val row = note.checklist[index]
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = row.checked,
@@ -440,7 +430,11 @@ private fun NoteDetailScreen(
                                 row.text,
                                 modifier = Modifier.weight(1f),
                                 textDecoration = if (row.checked) TextDecoration.LineThrough else null,
-                                color = if (row.checked) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                                color = if (row.checked) {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                },
                             )
                         }
                     }
@@ -448,11 +442,54 @@ private fun NoteDetailScreen(
             }
             item {
                 Text(
-                    stringResource(R.string.notes_last_edited, DateUtils.getRelativeTimeSpanString(note.updatedAt)),
+                    stringResource(
+                        R.string.notes_last_edited,
+                        DateUtils.getRelativeTimeSpanString(note.updatedAt),
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.addRichTextItems(
+    note: LocalNote,
+    viewModel: NotesViewModel,
+    onUnlock: () -> Unit,
+) {
+    val sortedImages = note.images.sortedBy { it.offset }
+    var cursor = 0
+    sortedImages.forEach { image ->
+        val end = image.offset.coerceIn(cursor, note.body.length)
+        if (end > cursor) {
+            val from = cursor
+            val to = end
+            item(key = "text-$from-$to") {
+                RichTextSegment(
+                    note = note,
+                    start = from,
+                    end = to,
+                    onTap = { offset -> viewModel.tap(note, offset, onUnlock) },
+                )
+            }
+        }
+        item(key = "image-${image.id}") {
+            NoteImagePreview(file = viewModel.imageFile(image), modifier = Modifier.fillMaxWidth())
+        }
+        cursor = end
+    }
+    if (cursor < note.body.length || (note.body.isEmpty() && note.images.isEmpty())) {
+        val from = cursor
+        val to = note.body.length
+        item(key = "text-tail-$from-$to") {
+            RichTextSegment(
+                note = note,
+                start = from,
+                end = to,
+                onTap = { offset -> viewModel.tap(note, offset, onUnlock) },
+            )
         }
     }
 }
@@ -467,23 +504,12 @@ private fun NoteEditorScreen(
     onBack: () -> Unit,
 ) {
     var textValue by remember(draft.id) {
-        mutableStateOf(
-            TextFieldValue(
-                annotatedString = styledText(draft.body, draft.styles),
-                selection = TextRange(draft.body.length),
-            ),
-        )
-    }
-    LaunchedEffect(draft.styles) {
-        textValue = textValue.copy(annotatedString = styledText(draft.body, draft.styles))
+        mutableStateOf(TextFieldValue(text = draft.body, selection = TextRange(draft.body.length)))
     }
     LaunchedEffect(draft.body) {
         if (textValue.text != draft.body) {
             val cursor = textValue.selection.start.coerceAtMost(draft.body.length)
-            textValue = TextFieldValue(
-                annotatedString = styledText(draft.body, draft.styles),
-                selection = TextRange(cursor),
-            )
+            textValue = TextFieldValue(text = draft.body, selection = TextRange(cursor))
         }
     }
 
@@ -496,18 +522,26 @@ private fun NoteEditorScreen(
             TopAppBar(
                 navigationIcon = {
                     IconButton(onClick = onBack, enabled = !busy) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.notes_back))
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = stringResource(R.string.notes_back),
+                        )
                     }
                 },
                 title = {
                     Text(
-                        if (draft.title.isBlank()) stringResource(R.string.notes_note) else draft.title,
+                        draft.title.ifBlank { stringResource(R.string.notes_note) },
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 actions = {
-                    if (busy) CircularProgressIndicator(Modifier.padding(end = 16.dp).size(20.dp), strokeWidth = 2.dp)
+                    if (busy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.padding(end = 16.dp).size(20.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
                 },
             )
         },
@@ -543,25 +577,46 @@ private fun NoteEditorScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             FormatButton(Icons.Rounded.FormatBold, R.string.notes_format_bold) {
-                                viewModel.toggleStyle(textValue.selection.start, textValue.selection.end, TextStyleKind.BOLD)
+                                viewModel.toggleStyle(
+                                    textValue.selection.start,
+                                    textValue.selection.end,
+                                    TextStyleKind.BOLD,
+                                )
                             }
                             FormatButton(Icons.Rounded.FormatItalic, R.string.notes_format_italic) {
-                                viewModel.toggleStyle(textValue.selection.start, textValue.selection.end, TextStyleKind.ITALIC)
+                                viewModel.toggleStyle(
+                                    textValue.selection.start,
+                                    textValue.selection.end,
+                                    TextStyleKind.ITALIC,
+                                )
                             }
                             FormatButton(Icons.Rounded.FormatUnderlined, R.string.notes_format_underline) {
-                                viewModel.toggleStyle(textValue.selection.start, textValue.selection.end, TextStyleKind.UNDERLINE)
+                                viewModel.toggleStyle(
+                                    textValue.selection.start,
+                                    textValue.selection.end,
+                                    TextStyleKind.UNDERLINE,
+                                )
                             }
                             FormatButton(Icons.Rounded.FormatStrikethrough, R.string.notes_format_strike) {
-                                viewModel.toggleStyle(textValue.selection.start, textValue.selection.end, TextStyleKind.STRIKE)
+                                viewModel.toggleStyle(
+                                    textValue.selection.start,
+                                    textValue.selection.end,
+                                    TextStyleKind.STRIKE,
+                                )
                             }
                             Spacer(Modifier.weight(1f))
                             FilledTonalIconButton(
                                 onClick = {
-                                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                    picker.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                                    )
                                 },
                                 enabled = !busy,
                             ) {
-                                Icon(Icons.Rounded.AddPhotoAlternate, contentDescription = stringResource(R.string.notes_add_image))
+                                Icon(
+                                    Icons.Rounded.AddPhotoAlternate,
+                                    contentDescription = stringResource(R.string.notes_add_image),
+                                )
                             }
                         }
                     }
@@ -588,9 +643,16 @@ private fun NoteEditorScreen(
                                 style = MaterialTheme.typography.titleSmall,
                             )
                         }
-                        items(draft.images.sortedBy { it.offset }, key = { it.id }) { image ->
+                        items(
+                            count = draft.images.size,
+                            key = { index -> draft.images[index].id },
+                        ) { index ->
+                            val image = draft.images.sortedBy { it.offset }[index]
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                NoteImagePreview(file = viewModel.imageFile(image), modifier = Modifier.fillMaxWidth())
+                                NoteImagePreview(
+                                    file = viewModel.imageFile(image),
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         stringResource(R.string.notes_image_position, image.offset),
@@ -598,16 +660,22 @@ private fun NoteEditorScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.weight(1f),
                                     )
-                                    TextButton(onClick = { viewModel.removeImage(image) }, enabled = !busy) {
-                                        Text(stringResource(R.string.notes_delete))
-                                    }
+                                    TextButton(
+                                        onClick = { viewModel.removeImage(image) },
+                                        enabled = !busy,
+                                    ) { Text(stringResource(R.string.notes_delete)) }
                                 }
                             }
                         }
                     }
                 }
+
                 NoteType.CHECKLIST -> {
-                    items(draft.checklist, key = { it.id }) { row ->
+                    items(
+                        count = draft.checklist.size,
+                        key = { index -> draft.checklist[index].id },
+                    ) { index ->
+                        val row = draft.checklist[index]
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = row.checked,
@@ -618,12 +686,17 @@ private fun NoteEditorScreen(
                                 value = row.text,
                                 onValueChange = { viewModel.updateChecklistItem(row.id, it) },
                                 enabled = !busy,
-                                singleLine = false,
                                 modifier = Modifier.weight(1f),
                                 placeholder = { Text(stringResource(R.string.notes_checklist_item)) },
                             )
-                            IconButton(onClick = { viewModel.removeChecklistItem(row.id) }, enabled = !busy) {
-                                Icon(Icons.Rounded.Delete, contentDescription = stringResource(R.string.notes_delete))
+                            IconButton(
+                                onClick = { viewModel.removeChecklistItem(row.id) },
+                                enabled = !busy,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Delete,
+                                    contentDescription = stringResource(R.string.notes_delete),
+                                )
                             }
                         }
                     }
@@ -636,6 +709,7 @@ private fun NoteEditorScreen(
                     }
                 }
             }
+
             item {
                 Text(
                     stringResource(R.string.notes_autosave_hint),
@@ -738,7 +812,7 @@ private fun RichTextSegment(note: LocalNote, start: Int, end: Int, onTap: (Int) 
         modifier = Modifier
             .fillMaxWidth()
             .pointerInput(text) {
-                androidx.compose.foundation.gestures.detectTapGestures { position ->
+                detectTapGestures { position ->
                     val result = layout ?: return@detectTapGestures
                     if (text.isNotEmpty()) {
                         val local = result.getOffsetForPosition(position).coerceIn(0, text.lastIndex)
@@ -761,30 +835,28 @@ private fun styledSlice(note: LocalNote, start: Int, end: Int): AnnotatedString 
     return builder.toAnnotatedString()
 }
 
-private fun styledText(text: String, styles: List<NoteTextStyle>): AnnotatedString {
-    val builder = AnnotatedString.Builder(text)
-    NotesPolicy.normalizeStyles(text, styles).forEach { style ->
-        builder.addStyle(style.toSpanStyle(), style.start, style.end)
-    }
-    return builder.toAnnotatedString()
-}
-
 private fun NoteTextStyle.toSpanStyle(): SpanStyle {
-    val decorations = buildList {
-        if (underline) add(TextDecoration.Underline)
-        if (strikeThrough) add(TextDecoration.LineThrough)
+    val decoration = when {
+        underline && strikeThrough -> TextDecoration.combine(
+            listOf(TextDecoration.Underline, TextDecoration.LineThrough),
+        )
+        underline -> TextDecoration.Underline
+        strikeThrough -> TextDecoration.LineThrough
+        else -> null
     }
     return SpanStyle(
         fontWeight = if (bold) FontWeight.Bold else null,
         fontStyle = if (italic) FontStyle.Italic else null,
-        textDecoration = decorations.takeIf { it.isNotEmpty() }?.let { TextDecoration.combine(it) },
+        textDecoration = decoration,
     )
 }
 
 @Composable
 private fun NoteImagePreview(file: File?, modifier: Modifier = Modifier) {
-    val bitmap = remember(file?.absolutePath, file?.lastModified()) {
-        file?.takeIf { it.exists() }?.let(::loadSampledBitmap)
+    val bitmap by produceState<Bitmap?>(initialValue = null, file?.absolutePath, file?.lastModified()) {
+        value = withContext(Dispatchers.IO) {
+            file?.takeIf { it.exists() }?.let(::loadSampledBitmap)
+        }
     }
     if (bitmap == null) {
         Surface(
@@ -793,16 +865,20 @@ private fun NoteImagePreview(file: File?, modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.notes_image_unavailable), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.notes_image_unavailable),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     } else {
+        val image = bitmap ?: return
         Image(
-            bitmap = bitmap.asImageBitmap(),
+            bitmap = image.asImageBitmap(),
             contentDescription = stringResource(R.string.notes_image),
             contentScale = ContentScale.Crop,
             modifier = modifier
-                .aspectRatio((bitmap.width.toFloat() / bitmap.height.coerceAtLeast(1)).coerceIn(0.7f, 1.8f))
+                .aspectRatio((image.width.toFloat() / image.height.coerceAtLeast(1)).coerceIn(0.7f, 1.8f))
                 .clip(RoundedCornerShape(14.dp)),
         )
     }
@@ -813,10 +889,15 @@ private fun loadSampledBitmap(file: File): Bitmap? = runCatching {
     BitmapFactory.decodeFile(file.absolutePath, bounds)
     var sample = 1
     while (bounds.outWidth / sample > 1600 || bounds.outHeight / sample > 1600) sample *= 2
-    val bitmap = BitmapFactory.decodeFile(file.absolutePath, BitmapFactory.Options().apply { inSampleSize = sample })
-        ?: return@runCatching null
+    val bitmap = BitmapFactory.decodeFile(
+        file.absolutePath,
+        BitmapFactory.Options().apply { inSampleSize = sample },
+    ) ?: return@runCatching null
     val orientation = runCatching {
-        ExifInterface(file).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        ExifInterface(file).getAttributeInt(
+            ExifInterface.TAG_ORIENTATION,
+            ExifInterface.ORIENTATION_NORMAL,
+        )
     }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
     val degrees = when (orientation) {
         ExifInterface.ORIENTATION_ROTATE_90 -> 90f
@@ -845,26 +926,21 @@ private fun transparentTextFieldColors() = TextFieldDefaults.colors(
     disabledIndicatorColor = Color.Transparent,
 )
 
+/** Passive hold observer: it never consumes the FAB's short-click gesture. */
 private fun Modifier.notesRecoveryHold(
     enabled: Boolean,
     onHold: () -> Unit,
-    onLongRelease: () -> Unit,
 ): Modifier = composed {
     val currentOnHold = rememberUpdatedState(onHold)
-    val currentOnLongRelease = rememberUpdatedState(onLongRelease)
     pointerInput(enabled) {
         if (!enabled) return@pointerInput
         coroutineScope {
             awaitEachGesture {
                 val down = awaitFirstDown(requireUnconsumed = false)
                 var released = false
-                var triggered = false
                 val timer = launch {
                     delay(NOTES_RECOVERY_HOLD_MILLIS)
-                    if (!released) {
-                        triggered = true
-                        currentOnHold.value()
-                    }
+                    if (!released) currentOnHold.value()
                 }
                 try {
                     while (true) {
@@ -875,16 +951,13 @@ private fun Modifier.notesRecoveryHold(
                 } finally {
                     released = true
                     timer.cancel()
-                    if (triggered) {
-                        delay(250)
-                        currentOnLongRelease.value()
-                    }
                 }
             }
         }
     }
 }
 
+/** Compatibility editor retained for Notes setup before the cover is activated. */
 @Composable
 internal fun NoteEditorDialog(
     note: LocalNote?,
