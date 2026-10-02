@@ -90,8 +90,10 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
         if (draft != null && NotesPolicy.isPersistable(draft)) {
             persistSnapshot(draft, closeAfter = true)
         } else {
-            if (state.draftIsNew) draft?.images?.forEach(repository::deleteImage)
             uiState = state.copy(editorOpen = false, draft = null, draftIsNew = false)
+            viewModelScope.launch(Dispatchers.IO) {
+                persistMutex.withLock { repository.cleanupOrphans() }
+            }
         }
     }
 
@@ -167,7 +169,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             val image = result.getOrThrow()
             val current = uiState.draft
             if (current == null || current.id != draft.id) {
-                withContext(Dispatchers.IO) { repository.deleteImage(image) }
+                withContext(Dispatchers.IO) {
+                    persistMutex.withLock { repository.cleanupOrphans() }
+                }
                 uiState = uiState.copy(busy = false)
                 return@launch
             }
@@ -191,7 +195,8 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
                 updatedAt = System.currentTimeMillis(),
             ),
         )
-        viewModelScope.launch(Dispatchers.IO) { repository.deleteImage(image) }
+        // Do not delete the file before the metadata update is durable. Repository cleanup runs
+        // after successful AtomicFile commit and removes the now-unreferenced attachment.
         schedulePersist()
     }
 
@@ -289,6 +294,9 @@ class NotesViewModel(application: Application) : AndroidViewModel(application) {
             delay(150)
             val draft = uiState.draft ?: return@launch
             if (NotesPolicy.isPersistable(draft)) persistSnapshot(draft)
+            else withContext(Dispatchers.IO) {
+                persistMutex.withLock { repository.cleanupOrphans() }
+            }
         }
     }
 
