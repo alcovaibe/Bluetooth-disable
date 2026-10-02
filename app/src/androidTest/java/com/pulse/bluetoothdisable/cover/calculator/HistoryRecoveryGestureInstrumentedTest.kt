@@ -60,9 +60,9 @@ class HistoryRecoveryGestureInstrumentedTest {
             header.performTouchInput {
                 down(if (index == 0) Offset(width - 4f, center.y) else Offset(4f, height - 4f))
             }
-            advanceHold(7_200)
+            advanceHold(3_200)
             compose.waitUntil(2_000) { calls.get() == index + 1 }
-            compose.mainClock.advanceTimeBy(3_000)
+            compose.mainClock.advanceTimeBy(1_000)
             assertEquals(index + 1, calls.get())
             header.performTouchInput { up() }
         }
@@ -71,36 +71,51 @@ class HistoryRecoveryGestureInstrumentedTest {
     @Test fun historyRowsAndClearButtonAreOutsideRecoveryArea() {
         showHistory()
         val row = compose.onNodeWithText("1+1 = 2")
-        val clear = compose.onNodeWithText(context.getString(R.string.calculator_clear_history))
-        for (node in listOf(row, clear)) {
-            node.performTouchInput { down(center) }
-            advanceHold(7_200)
-            assertEquals(0, calls.get())
-            node.performTouchInput { up() }
-        }
+        row.performTouchInput { down(center) }
+        advanceHold(3_200)
+        assertEquals(0, calls.get())
+        row.performTouchInput { up() }
+
+        val clear = compose.onNodeWithTag("calculator_history_clear")
+        clear.performTouchInput { down(center) }
+        advanceHold(3_200)
+        assertEquals(0, calls.get())
+        clear.performTouchInput { up() }
+        compose.waitForIdle()
+        compose.onNodeWithText(context.getString(R.string.cancel)).performClick()
     }
 
-    @Test fun sevenSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
+    @Test fun threeSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
         showHistory()
         title().performTouchInput { down(center) }
-        advanceHold(7_200)
+        advanceHold(3_200)
         compose.waitUntil(2_000) { calls.get() == 1 }
-        SystemClock.sleep(3_000)
-        compose.mainClock.advanceTimeBy(3_000)
+        SystemClock.sleep(1_000)
+        compose.mainClock.advanceTimeBy(1_000)
         assertEquals(1, calls.get())
         title().performTouchInput { up() }
     }
 
-    @Test fun fingerDriftDuringSevenSecondHoldStillTriggers() {
+    @Test fun fingerDriftDuringThreeSecondHoldStillTriggers() {
         showHistory()
         title().performTouchInput {
             down(center)
             moveBy(Offset(18f, 10f))
             moveBy(Offset(-8f, 6f))
         }
-        advanceHold(7_200)
+        advanceHold(3_200)
         compose.waitUntil(2_000) { calls.get() == 1 }
         assertEquals(1, calls.get())
+        title().performTouchInput { up() }
+    }
+
+    @Test fun holdBelowThresholdDoesNotTriggerButCrossingThreeSecondsDoes() {
+        showHistory()
+        title().performTouchInput { down(center) }
+        advanceHold(2_800)
+        assertEquals(0, calls.get())
+        advanceHold(400)
+        compose.waitUntil(2_000) { calls.get() == 1 }
         title().performTouchInput { up() }
     }
 
@@ -116,11 +131,20 @@ class HistoryRecoveryGestureInstrumentedTest {
         title().performTouchInput { down(center) }
         compose.runOnIdle { enabled.value = false }
         compose.mainClock.advanceTimeByFrame()
-        advanceHold(7_200)
+        advanceHold(3_200)
         title().performTouchInput { up() }
         assertEquals(0, calls.get())
+    }
 
-        compose.onNodeWithText(context.getString(R.string.calculator_clear_history)).performClick()
+    @Test fun clearHistoryRequiresExplicitConfirmation() {
+        showHistory()
+
+        compose.onNodeWithTag("calculator_history_clear").performClick()
+        compose.runOnIdle {
+            assertEquals(listOf(CalculatorHistoryEntry("1+1", "2")), history.value)
+        }
+
+        compose.onNodeWithTag("calculator_history_clear_confirm").performClick()
         compose.runOnIdle { assertEquals(emptyList<CalculatorHistoryEntry>(), history.value) }
     }
 }
