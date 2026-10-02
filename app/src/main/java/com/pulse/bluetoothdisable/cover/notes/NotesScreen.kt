@@ -434,7 +434,7 @@ private fun NoteDetailScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
                                 checked = row.checked,
-                                onCheckedChange = { viewModel.toggleChecklistItem(row.id) },
+                                onCheckedChange = { viewModel.toggleChecklistItem(note, row.id) },
                             )
                             Text(
                                 row.text,
