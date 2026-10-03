@@ -2,32 +2,47 @@ package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.util.AtomicFile
-import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.io.FileNotFoundException
 import java.time.LocalDate
 import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Own local calendar; no CalendarContract, account, permission or network access. */
 class LocalCalendarNotesRepository(context: Context) : CalendarNotesRepository {
-    private val file = AtomicFile(File(context.applicationContext.filesDir, FILE_NAME))
+    private val appContext = context.applicationContext
+    private val file = AtomicFile(File(appContext.filesDir, FILE_NAME))
 
     override fun notes(): List<CalendarNote> = synchronized(lock) { readNotes() }
 
     override fun save(date: LocalDate, text: String, id: String?): CalendarNote = synchronized(lock) {
-        require(text.isNotBlank())
         val notes = readNotes().toMutableList()
         val previous = id?.let { noteId -> notes.firstOrNull { it.id == noteId } }
         require(id == null || previous != null)
-        val now = System.currentTimeMillis()
+        require(previous == null || previous.date == date) { "Calendar note date cannot be changed" }
+
+        val normalized = CalendarNotePolicy.normalize(text)
+        CalendarNotePolicy.validate(date, normalized, notes, id)?.let { violation ->
+            throw CalendarNoteValidationException(violation)
+        }
+
+        val clock = System.currentTimeMillis()
+        val updatedAt = if (previous != null && clock <= previous.updatedAt) {
+            previous.updatedAt + 1
+        } else {
+            clock
+        }
         val note = CalendarNote(
-            previous?.id ?: UUID.randomUUID().toString(), date, text.trim(),
-            previous?.createdAt ?: now, now,
+            id = previous?.id ?: UUID.randomUUID().toString(),
+            date = previous?.date ?: date,
+            text = normalized,
+            createdAt = previous?.createdAt ?: updatedAt,
+            updatedAt = updatedAt,
         )
         notes.removeAll { it.id == note.id }
         notes.add(note)
-        writeNotes(notes)
+        writeNotes(CalendarNotePolicy.sorted(notes))
         note
     }
 
@@ -36,6 +51,7 @@ class LocalCalendarNotesRepository(context: Context) : CalendarNotesRepository {
     }
 
     override fun clear() = synchronized(lock) {
+        CalendarDraftStore(appContext).clearAll()
         file.delete()
         CalendarNotesCipher.clearKey()
     }
@@ -47,13 +63,18 @@ class LocalCalendarNotesRepository(context: Context) : CalendarNotesRepository {
             return emptyList()
         }
         val array = JSONArray(CalendarNotesCipher.decrypt(content))
-        return (0 until array.length()).map { index ->
-            val item = array.getJSONObject(index)
-            CalendarNote(
-                item.getString("id"), LocalDate.parse(item.getString("date")),
-                item.getString("text"), item.getLong("createdAt"), item.getLong("updatedAt"),
-            )
-        }.sortedBy { it.createdAt }
+        return CalendarNotePolicy.sorted(
+            (0 until array.length()).map { index ->
+                val item = array.getJSONObject(index)
+                CalendarNote(
+                    item.getString("id"),
+                    LocalDate.parse(item.getString("date")),
+                    item.getString("text"),
+                    item.getLong("createdAt"),
+                    item.getLong("updatedAt"),
+                )
+            },
+        )
     }
 
     private fun writeNotes(notes: List<CalendarNote>) {
