@@ -196,9 +196,9 @@
         </activity-alias>
 
         <service
-            android:name=".quicksettings.NoBluetoothTileService"
+            android:name=".quicksettings.BluetoothDisableTileService"
             android:exported="true"
-            android:icon="@drawable/ic_qs_nobluetooth"
+            android:icon="@drawable/ic_qs_bluetooth_disable"
             android:label="@string/qs_tile_label"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

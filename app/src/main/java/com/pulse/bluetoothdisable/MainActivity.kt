@@ -40,7 +40,7 @@ import com.pulse.bluetoothdisable.domain.ProtectionState
 import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import com.pulse.bluetoothdisable.localization.LanguageManager
-import com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
+import com.pulse.bluetoothdisable.quicksettings.BluetoothDisableTileService
 import com.pulse.bluetoothdisable.quicksettings.TileStateStore
 import com.pulse.bluetoothdisable.theme.ThemeManager
 import com.pulse.bluetoothdisable.ui.MainScreen
@@ -298,9 +298,9 @@ class MainActivity : ComponentActivity() {
 
         val statusBarManager = getSystemService(StatusBarManager::class.java)
         statusBarManager.requestAddTileService(
-            ComponentName(this, NoBluetoothTileService::class.java),
+            ComponentName(this, BluetoothDisableTileService::class.java),
             getString(R.string.qs_tile_label),
-            Icon.createWithResource(this, R.drawable.ic_qs_nobluetooth),
+            Icon.createWithResource(this, R.drawable.ic_qs_bluetooth_disable),
             mainExecutor,
         ) { result ->
             when (result) {
