@@ -48,7 +48,7 @@ class CalendarRecoveryGestureInstrumentedTest {
         compose.mainClock.advanceTimeBy(millis)
     }
 
-    @Test fun calendarAndTodayTextEachTriggerOnceAfterSevenSecondsWithFingerDrift() {
+    @Test fun calendarAndTodayTextEachTriggerOnceAfterThreeSecondsWithFingerDrift() {
         show()
         for ((index, word) in listOf("Calendar", "Today").withIndex()) {
             val node = compose.onNodeWithText(word, useUnmergedTree = true)
@@ -57,9 +57,9 @@ class CalendarRecoveryGestureInstrumentedTest {
                 moveBy(Offset(10f, 6f))
                 moveBy(Offset(-4f, 3f))
             }
-            advanceHold(7_200)
+            advanceHold(3_200)
             compose.waitUntil(2_000) { calls.get() == index + 1 }
-            compose.mainClock.advanceTimeBy(3_000)
+            compose.mainClock.advanceTimeBy(2_000)
             assertEquals(index + 1, calls.get())
             node.performTouchInput { up() }
         }
@@ -70,14 +70,14 @@ class CalendarRecoveryGestureInstrumentedTest {
         for (word in listOf("Calendar", "Today")) {
             val node = compose.onNodeWithText(word, useUnmergedTree = true)
             node.performTouchInput { down(center) }
-            advanceHold(4_000)
+            advanceHold(2_800)
             node.performTouchInput { up() }
         }
         assertEquals(0, calls.get())
         val title = compose.onNodeWithText("Calendar", useUnmergedTree = true)
         title.performTouchInput { down(center) }
         compose.runOnIdle { enabled.value = false }
-        advanceHold(7_200)
+        advanceHold(3_200)
         title.performTouchInput { up() }
         assertEquals(0, calls.get())
         compose.runOnIdle { model.select(LocalDate.of(2024, 2, 29)) }
@@ -91,11 +91,11 @@ class CalendarRecoveryGestureInstrumentedTest {
         show()
         val toolbar = compose.onNodeWithTag("calendar_toolbar")
         toolbar.performTouchInput { down(Offset(width / 2f, center.y)) }
-        advanceHold(7_200)
+        advanceHold(3_200)
         toolbar.performTouchInput { up() }
         val date = compose.onNodeWithText(CalendarDates.formatDate(LocalDate.now(), Locale.US))
         date.performTouchInput { down(center) }
-        advanceHold(7_200)
+        advanceHold(3_200)
         date.performTouchInput { up() }
         assertEquals(0, calls.get())
     }
