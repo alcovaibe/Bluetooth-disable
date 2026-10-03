@@ -25,6 +25,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     private val repository = GalleryRepository(application)
     private val access = GalleryAccessManager(application)
     private val detector = GallerySequenceDetector()
+    private var verificationInProgress = false
 
     var uiState by mutableStateOf(GalleryUiState())
         private set
@@ -34,17 +35,18 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun select(image: GalleryImage) {
-        detector.reset()
+        resetSequence()
         uiState = uiState.copy(selectedImageId = image.id)
     }
 
     fun closeViewer() {
-        detector.reset()
+        resetSequence()
         uiState = uiState.copy(selectedImageId = null)
     }
 
     fun resetSequence() {
         detector.reset()
+        verificationInProgress = false
     }
 
     fun importUris(uris: List<Uri>) {
@@ -82,23 +84,34 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
 
     fun tapZone(zone: GalleryTapZone, onUnlock: () -> Unit) {
         val imageId = uiState.selectedImageId ?: return
-        if (uiState.busy) return
+        if (uiState.busy || verificationInProgress) return
         val complete = detector.tap(zone, SystemClock.elapsedRealtime()) ?: return
+        verificationInProgress = true
         viewModelScope.launch {
             val matches = withContext(Dispatchers.IO) { access.matches(imageId, complete) }
-            if (matches) onUnlock()
+            verificationInProgress = false
+            if (matches && uiState.selectedImageId == imageId) onUnlock()
         }
     }
 
-    suspend fun imageBytes(id: String): ByteArray? = withContext(Dispatchers.IO) {
-        runCatching { repository.imageBytes(id) }.getOrNull()
+    suspend fun imageBytes(id: String): ByteArray? {
+        val result = withContext(Dispatchers.IO) {
+            runCatching { repository.imageBytes(id) }
+        }
+        if (result.isFailure) uiState = uiState.copy(storageError = true)
+        return result.getOrNull()
     }
 
-    suspend fun thumbnailBytes(id: String): ByteArray? = withContext(Dispatchers.IO) {
-        runCatching { repository.thumbnailBytes(id) }.getOrNull()
+    suspend fun thumbnailBytes(id: String): ByteArray? {
+        val result = withContext(Dispatchers.IO) {
+            runCatching { repository.thumbnailBytes(id) }
+        }
+        if (result.isFailure) uiState = uiState.copy(storageError = true)
+        return result.getOrNull()
     }
 
     fun refresh() {
+        resetSequence()
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching { repository.images() to repository.albums() }
@@ -118,12 +131,13 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun resetTransientUi() {
-        detector.reset()
+        resetSequence()
         uiState = uiState.copy(selectedImageId = null)
     }
 
     private fun mutate(action: () -> Unit) {
         if (uiState.busy) return
+        resetSequence()
         uiState = uiState.copy(busy = true)
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
