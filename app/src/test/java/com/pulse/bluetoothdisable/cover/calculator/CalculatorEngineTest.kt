@@ -15,10 +15,13 @@ class CalculatorEngineTest {
     @Test fun precedence() = assertValue("2 + 3 × 4", "14")
     @Test fun subtractionPrecedence() = assertValue("10 - 2 × 3", "4")
     @Test fun parentheses() = assertValue("(2 + 3) × 4", "20")
+    @Test fun missingClosingParenthesesAreClosedAtEquals() = assertValue("2 × (3 + 4", "14")
+    @Test fun nestedMissingClosingParenthesesAreClosedAtEquals() = assertValue("2 × ((3 + 4)", "14")
     @Test fun unaryMinus() = assertValue("-5 + 7", "2")
     @Test fun unaryMinusAfterMultiply() = assertValue("2 × -3", "-6")
     @Test fun unaryMinusInParentheses() = assertValue("(-5 + 2) × 3", "-9")
     @Test fun decimalPrecision() = assertValue("0.1 + 0.2", "0.3")
+    @Test fun commaDecimalIsAccepted() = assertValue("0,1 + 0,2", "0.3")
     @Test fun addPercent() = assertValue("200 + 10%", "220")
     @Test fun subtractPercent() = assertValue("200 - 10%", "180")
     @Test fun multiplyPercent() = assertValue("200 × 10%", "20")
@@ -29,6 +32,24 @@ class CalculatorEngineTest {
     @Test fun addFivePercent() = assertValue("1000 + 5%", "1050")
     @Test fun multiplyTwentyPercent() = assertValue("50 × 20%", "10")
     @Test fun divideTwentyPercent() = assertValue("10 ÷ 20%", "50")
+
+    @Test
+    fun repeatOperationUsesLastBinaryOperation() {
+        val operation = engine.repeatOperation("2 + 3 × 4")!!
+        val repeated = engine.applyRepeat(BigDecimal("14"), operation)
+        assertEquals(
+            CalculatorEvaluation.Success(BigDecimal("56")),
+            repeated,
+        )
+    }
+
+    @Test
+    fun repeatPercentUsesCurrentResultAsPercentBase() {
+        val operation = engine.repeatOperation("200 + 10%")!!
+        val repeated = engine.applyRepeat(BigDecimal("220"), operation)
+        val value = (repeated as CalculatorEvaluation.Success).value
+        assertEquals(0, value.compareTo(BigDecimal("242")))
+    }
 
     @Test
     fun divisionByZeroIsControlled() {
@@ -47,8 +68,15 @@ class CalculatorEngineTest {
     }
 
     @Test
+    fun scientificDisplayUsesPowerOfTenNotation() {
+        val value = BigDecimal("1" + "0".repeat(80))
+        assertEquals("1 × 10^80", CalculatorFormatter.format(value))
+        assertEquals("1" + "0".repeat(80), CalculatorFormatter.toExpression(value))
+    }
+
+    @Test
     fun malformedExpressionsNeverEscapeAsExceptions() {
-        listOf("", "2 + × 3", "(2 + 3", "1.2.3", ")1(", "%", "2 ÷")
+        listOf("", "2 + × 3", "1.2.3", ")1(", "%", "2 ÷")
             .forEach { expression ->
                 val result = engine.evaluate(expression)
                 assertTrue(result is CalculatorEvaluation.Failure)
