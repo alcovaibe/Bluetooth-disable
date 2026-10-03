@@ -26,6 +26,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
     private val access = GalleryAccessManager(application)
     private val detector = GallerySequenceDetector()
     private var verificationInProgress = false
+    private var verificationGeneration = 0L
 
     var uiState by mutableStateOf(GalleryUiState())
         private set
@@ -46,6 +47,7 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
 
     fun resetSequence() {
         detector.reset()
+        verificationGeneration++
         verificationInProgress = false
     }
 
@@ -86,9 +88,11 @@ class GalleryViewModel(application: Application) : AndroidViewModel(application)
         val imageId = uiState.selectedImageId ?: return
         if (uiState.busy || verificationInProgress) return
         val complete = detector.tap(zone, SystemClock.elapsedRealtime()) ?: return
+        val generation = ++verificationGeneration
         verificationInProgress = true
         viewModelScope.launch {
             val matches = withContext(Dispatchers.IO) { access.matches(imageId, complete) }
+            if (verificationGeneration != generation) return@launch
             verificationInProgress = false
             if (matches && uiState.selectedImageId == imageId) onUnlock()
         }
