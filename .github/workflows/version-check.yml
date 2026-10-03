@@ -1,0 +1,21 @@
+name: Verify version
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  verify-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify version format
+        shell: bash
+        run: |
+          VERSION_NAME=$(grep -R "versionName" -n app/build.gradle* | head -1 | sed -E 's/.*versionName[[:space:]]+[=][[:space:]]*[\"\x27]([^\"\x27]+)[\"\x27].*/\1/')
+          echo "Version name: $VERSION_NAME"
+          test -n "$VERSION_NAME"
