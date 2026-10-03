@@ -1,7 +1,7 @@
 <resources>
-    <string name="app_name">Bluetooth Disabler</string>
-    <string name="device_admin_label">Bluetooth Disabler device administrator</string>
-    <string name="device_admin_description">Allows Bluetooth Disabler to apply the Bluetooth restriction when this app is the device owner.</string>
+    <string name="app_name">Bluetooth Disable</string>
+    <string name="device_admin_label">Bluetooth Disable device administrator</string>
+    <string name="device_admin_description">Allows Bluetooth Disable to apply the Bluetooth restriction when this app is the device owner.</string>
 
     <string name="protection_title">Bluetooth protection</string>
     <string name="status_ready">OFF</string>
@@ -35,17 +35,17 @@
     <string name="theme_light">LIGHT</string>
     <string name="theme_dark">DARK</string>
 
-    <string name="launcher_hidden">The app icon is hidden. Use the Quick Settings tile to open Bluetooth Disabler.</string>
+    <string name="launcher_hidden">The app icon is hidden. Use the Quick Settings tile to open Bluetooth Disable.</string>
     <string name="action_hide_launcher">CHANGE ICON</string>
     <string name="action_show_launcher">SHOW APP ICON</string>
     <string name="action_add_tile">ADD QUICK SETTINGS TILE</string>
     <string name="tile_manual_hint">On Android 8–12, add the tile manually from Quick Settings edit mode.</string>
     <string name="hide_launcher_dialog_title">Hide app icon?</string>
-    <string name="hide_launcher_dialog_message">The Bluetooth Disabler icon will be hidden from the app launcher. A shortcut already placed on the home screen may remain and can be removed manually. Add the Bluetooth Disabler Quick Settings tile first so you can reopen the app.</string>
+    <string name="hide_launcher_dialog_message">The Bluetooth Disable icon will be hidden from the app launcher. A shortcut already placed on the home screen may remain and can be removed manually. Add the Bluetooth Disable Quick Settings tile first so you can reopen the app.</string>
     <string name="hide_launcher_confirm">HIDE</string>
     <string name="cancel">CANCEL</string>
     <string name="continue_action">CONTINUE</string>
-    <string name="qs_tile_label">Bluetooth Disabler</string>
+    <string name="qs_tile_label">Bluetooth Disable</string>
 
     <string name="change_launcher_icon_title">Change app icon</string>
     <string name="launcher_option_default">Default</string>

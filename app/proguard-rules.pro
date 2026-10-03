@@ -17,4 +17,4 @@
 
 # Keep Device Admin Receiver and Tile Service components
 -keep class com.pulse.bluetoothdisable.admin.AppDeviceAdminReceiver
--keep class com.pulse.bluetoothdisable.quicksettings.NoBluetoothTileService
+-keep class com.pulse.bluetoothdisable.quicksettings.BluetoothDisableTileService

@@ -1,0 +1,71 @@
+name: License Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
+      - name: Create ephemeral release signing key
+        shell: bash
+        run: |
+          keytool -genkeypair \
+            -keystore "$RUNNER_TEMP/license-audit-release.jks" \
+            -storepass license-audit-password \
+            -keypass license-audit-password \
+            -alias license-audit \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 1 \
+            -dname "CN=Bluetooth Disable License Audit, OU=CI, O=Bluetooth Disable, C=XX"
+
+      - name: Resolve runtime dependencies with current Gradle and AGP
+        shell: bash
+        env:
+          RELEASE_STORE_FILE: ${{ runner.temp }}/license-audit-release.jks
+          RELEASE_STORE_PASSWORD: license-audit-password
+          RELEASE_KEY_ALIAS: license-audit
+          RELEASE_KEY_PASSWORD: license-audit-password
+        run: |
+          mkdir -p build/reports/dependencies
+          ./gradlew --version
+          ./gradlew :app:dependencies \
+            --configuration releaseRuntimeClasspath \
+            --console=plain | tee build/reports/dependencies/releaseRuntimeClasspath.txt
+
+      - name: Audit runtime dependency licenses
+        run: |
+          python3 scripts/audit_dependency_licenses.py \
+            build/reports/dependencies/releaseRuntimeClasspath.txt \
+            build/reports/licenses/dependency-licenses.md
+
+      - name: Upload dependency audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-license-audit
+          path: |
+            build/reports/dependencies/releaseRuntimeClasspath.txt
+            build/reports/licenses/dependency-licenses.md
+          if-no-files-found: error

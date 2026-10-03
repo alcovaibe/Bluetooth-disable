@@ -7,7 +7,7 @@ import android.os.Build
 import android.service.quicksettings.TileService
 import com.pulse.bluetoothdisable.MainActivity
 
-class NoBluetoothTileService : TileService() {
+class BluetoothDisableTileService : TileService() {
     override fun onTileAdded() {
         super.onTileAdded()
         TileStateStore.setAdded(this, true)
