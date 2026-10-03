@@ -19,6 +19,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     private val engine = CalculatorEngine()
     private val historyStore = CalculatorHistoryStore(application)
     private val accessCodeManager = CalculatorAccessCodeManager(application)
+    private var repeatOperation: CalculatorRepeatOperation? = null
 
     var uiState by mutableStateOf(
         CalculatorUiState(history = historyStore.entries()),
@@ -27,12 +28,12 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun inputDigit(digit: Char) {
         if (!digit.isDigit()) return
-        val base = if (uiState.afterResult) "" else uiState.expression
+        val base = uiState.expression
         updateExpression(base + digit, clearPrevious = uiState.afterResult)
     }
 
     fun inputDecimal() {
-        var base = if (uiState.afterResult) "" else uiState.expression
+        var base = uiState.expression
         val currentNumber = base.takeLastWhile { it.isDigit() || it == '.' }
         if (currentNumber.contains('.')) return
 
@@ -51,7 +52,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         var expression = uiState.expression
 
         if (uiState.afterResult) {
-            expression = uiState.display + operator
+            expression += operator
             updateExpression(expression, clearPrevious = true)
             return
         }
@@ -125,6 +126,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     fun backspace() {
         val source = uiState.expression
         if (source.isEmpty()) return
+        repeatOperation = null
         val updated = source.dropLast(1)
         uiState = uiState.copy(
             expression = updated,
@@ -136,6 +138,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun clear() {
+        repeatOperation = null
         uiState = CalculatorUiState(history = uiState.history)
     }
 
@@ -146,36 +149,76 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun equalsPressed(): Boolean {
         val raw = uiState.expression
-        val accessCandidate = CalculatorAccessCodePolicy.isValid(raw)
+        val directAccessCandidate = !uiState.afterResult && CalculatorAccessCodePolicy.isValid(raw)
 
-        if (accessCandidate && accessCodeManager.verify(raw)) {
+        if (directAccessCandidate && accessCodeManager.verify(raw)) {
             clear()
             return true
         }
 
-        when (val evaluation = engine.evaluate(raw)) {
-            is CalculatorEvaluation.Success -> {
-                val result = CalculatorFormatter.format(evaluation.value)
-                if (!accessCandidate) {
-                    historyStore.add(raw, result)
+        if (uiState.afterResult) {
+            val operation = repeatOperation ?: return false
+            val current = when (val evaluation = engine.evaluate(uiState.expression)) {
+                is CalculatorEvaluation.Success -> evaluation.value
+                is CalculatorEvaluation.Failure -> {
+                    repeatOperation = null
+                    uiState = uiState.copy(error = evaluation.error)
+                    return false
                 }
+            }
+            val repeatedExpression = uiState.expression + operation.expressionSuffix()
+            applyEvaluation(
+                expression = repeatedExpression,
+                evaluation = engine.applyRepeat(current, operation),
+                keepRepeatOperation = true,
+            )
+            return false
+        }
+
+        val normalized = try {
+            engine.normalizeForEvaluation(raw)
+        } catch (_: CalculatorParseException) {
+            raw
+        }
+        val operation = engine.repeatOperation(normalized)
+        repeatOperation = operation
+        applyEvaluation(
+            expression = normalized,
+            evaluation = engine.evaluate(normalized),
+            keepRepeatOperation = operation != null,
+        )
+        return false
+    }
+
+    private fun applyEvaluation(
+        expression: String,
+        evaluation: CalculatorEvaluation,
+        keepRepeatOperation: Boolean,
+    ) {
+        when (evaluation) {
+            is CalculatorEvaluation.Success -> {
+                val resultExpression = CalculatorFormatter.toExpression(evaluation.value)
+                val resultDisplay = CalculatorFormatter.format(evaluation.value)
+                historyStore.add(expression, resultDisplay)
                 uiState = uiState.copy(
-                    expression = result,
-                    previousExpression = "$raw =",
-                    display = result,
+                    expression = resultExpression,
+                    previousExpression = "$expression =",
+                    display = resultDisplay,
                     error = null,
                     afterResult = true,
                     history = historyStore.entries(),
                 )
+                if (!keepRepeatOperation) repeatOperation = null
             }
             is CalculatorEvaluation.Failure -> {
-                uiState = uiState.copy(error = evaluation.error)
+                repeatOperation = null
+                uiState = uiState.copy(error = evaluation.error, afterResult = false)
             }
         }
-        return false
     }
 
     private fun updateExpression(value: String, clearPrevious: Boolean) {
+        repeatOperation = null
         uiState = uiState.copy(
             expression = value,
             previousExpression = if (clearPrevious) "" else uiState.previousExpression,
