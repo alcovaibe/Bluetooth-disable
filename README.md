@@ -42,7 +42,7 @@ Cover Mode меняют launcher-идентичность приложения �
 
 Если код забыт, откройте историю калькулятора и удерживайте заголовок **«История» 3 секунды**, затем пройдите системную аутентификацию и подтвердите сброс маскировки.
 
-[Подробная документация Calculator Cover Mode](docs/covermode/calculator/ru/CALCULATOR_COVER_MODE.md)
+[Актуальная документация Calculator Cover Mode](docs/covermode/calculator/ru/README.md)
 
 ### Заметки
 

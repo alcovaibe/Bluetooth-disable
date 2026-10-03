@@ -42,7 +42,7 @@ The plaintext code is not persisted. Verification uses HMAC-SHA256 with a non-ex
 
 If the code is forgotten, open calculator history and hold the **History** header for **3 seconds**, complete Android system authentication, and confirm the cover reset.
 
-[Calculator Cover Mode documentation](docs/covermode/calculator/en/CALCULATOR_COVER_MODE.md)
+[Current Calculator Cover Mode documentation](docs/covermode/calculator/en/README.md)
 
 ### Notes
 
