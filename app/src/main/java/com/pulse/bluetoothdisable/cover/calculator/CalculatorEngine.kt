@@ -60,7 +60,7 @@ class CalculatorEngine {
             CalculatorRepeatOperation(
                 operator = binary.operator,
                 operand = CalculatorEvaluator.evaluate(binary.right),
-                operandIsPercent = binary.right is PercentNode,
+                operandIsPercent = CalculatorEvaluator.isPercentOperand(binary.right),
             )
         } catch (_: Exception) {
             null
