@@ -40,6 +40,12 @@ internal object CalculatorEvaluator {
         }
     }
 
+    fun isPercentOperand(node: CalculatorNode): Boolean = when (node) {
+        is PercentNode -> true
+        is UnaryMinusNode -> isPercentOperand(node.operand)
+        else -> false
+    }
+
     private fun evaluateBinary(node: BinaryNode): BigDecimal {
         val left = evaluate(node.left)
         val right = evaluate(node.right)
@@ -47,7 +53,7 @@ internal object CalculatorEvaluator {
             left = left,
             operator = node.operator,
             right = right,
-            rightIsPercent = node.right is PercentNode,
+            rightIsPercent = isPercentOperand(node.right),
         )
     }
 
