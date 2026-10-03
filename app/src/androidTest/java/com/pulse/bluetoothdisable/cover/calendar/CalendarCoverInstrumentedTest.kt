@@ -73,16 +73,16 @@ class CalendarCoverInstrumentedTest {
         ActivityScenario.launch<CalendarCoverActivity>(Intent(context, CalendarCoverActivity::class.java)).use { scenario ->
             scenario.onActivity { ViewModelProvider(it)[CalendarViewModel::class.java].select(date) }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("access note").fetchSemanticsNodes().isNotEmpty() }
-            // Bring the entire card above the floating Add button before tapping
-            // its upper-right control; scrolling only the icon can leave it covered.
             val firstNoteIndex = 2 + CalendarDates.monthCells(java.time.YearMonth.from(date)).size / 7
             compose.onNode(hasScrollToIndexAction()).performScrollToIndex(firstNoteIndex)
             compose.onNodeWithText("Edit note").assertDoesNotExist()
             compose.onNodeWithText("Delete").assertDoesNotExist()
             compose.onNodeWithContentDescription("Show note actions").performClick()
             scenario.onActivity {
-                assertFalse("The chevron must not open the Add/Edit note dialog",
-                    ViewModelProvider(it)[CalendarViewModel::class.java].uiState.editorOpen)
+                assertFalse(
+                    "The chevron must not open the Add/Edit note dialog",
+                    ViewModelProvider(it)[CalendarViewModel::class.java].uiState.editorOpen,
+                )
             }
             compose.waitUntil(5_000) { compose.onAllNodesWithText("Edit note").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
@@ -94,8 +94,11 @@ class CalendarCoverInstrumentedTest {
             assertFalse(isMainResumed())
             capturePreview("calendar-note-actions-expanded.png")
             compose.onNodeWithText("Edit note").performClick()
-            assertEquals("access note", compose.onNodeWithTag("calendar_note_text")
-                .fetchSemanticsNode().config[SemanticsProperties.EditableText].text)
+            assertEquals(
+                "access note",
+                compose.onNodeWithTag("calendar_note_text")
+                    .fetchSemanticsNode().config[SemanticsProperties.EditableText].text,
+            )
             assertFalse(isMainResumed())
             compose.onNodeWithText("CANCEL").performClick()
             compose.onNodeWithContentDescription("Hide note actions").performClick()
@@ -140,16 +143,21 @@ class CalendarCoverInstrumentedTest {
 
     @Test fun saveDoesNotUnlockButNoteTapOpensMainAndHideClearsTask() {
         manager.activateCalendar(date, "открой меня")
-        ActivityScenario.launch<CalendarCoverActivity>(Intent(context, CalendarCoverActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
+        ActivityScenario.launch<CalendarCoverActivity>(
+            Intent(context, CalendarCoverActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        ).use { scenario ->
             scenario.onActivity { activity ->
                 ViewModelProvider(activity)[CalendarViewModel::class.java].select(date)
             }
-            compose.waitUntil(5_000) { compose.onAllNodesWithText("No notes for this date.").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("No notes for this date.").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithContentDescription("Add note").performClick()
             compose.onNodeWithTag("calendar_note_text").performTextInput("открой меня")
             compose.onNodeWithText("Save").performClick()
-            compose.waitUntil(5_000) { compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isEmpty() }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isEmpty()
+            }
             compose.onNodeWithText("открой меня").assertIsDisplayed()
             assertFalse(isMainResumed())
             capturePreview("calendar-saved-note.png")
@@ -171,15 +179,20 @@ class CalendarCoverInstrumentedTest {
         val repo = LocalCalendarNotesRepository(context)
         val wrongDate = repo.save(date.plusDays(1), "открой меня")
         val wrongText = repo.save(date, "Открой меня")
-        ActivityScenario.launch<CalendarCoverActivity>(Intent(context, CalendarCoverActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)).use { scenario ->
+        ActivityScenario.launch<CalendarCoverActivity>(
+            Intent(context, CalendarCoverActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        ).use { scenario ->
             for (note in listOf(wrongDate, wrongText)) {
                 scenario.onActivity { activity ->
                     ViewModelProvider(activity)[CalendarViewModel::class.java].select(note.date)
                 }
-                compose.waitUntil(5_000) { compose.onAllNodesWithText(note.text).fetchSemanticsNodes().isNotEmpty() }
+                compose.waitUntil(5_000) {
+                    compose.onAllNodesWithText(note.text).fetchSemanticsNodes().isNotEmpty()
+                }
                 compose.onNodeWithText(note.text).performClick()
-                compose.waitUntil(5_000) { compose.onAllNodesWithTag("calendar_note_view").fetchSemanticsNodes().isNotEmpty() }
+                compose.waitUntil(5_000) {
+                    compose.onAllNodesWithTag("calendar_note_view").fetchSemanticsNodes().isNotEmpty()
+                }
                 compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
                 compose.onNodeWithTag("calendar_note_view").assertIsDisplayed()
                 assertFalse(isMainResumed())
@@ -189,7 +202,9 @@ class CalendarCoverInstrumentedTest {
     }
 
     @Test fun setupActivatesOnlyAfterFinalConfirmationAndCreatesNoAccessNote() {
-        ActivityScenario.launch<CalendarCoverSetupActivity>(Intent(context, CalendarCoverSetupActivity::class.java)).use {
+        ActivityScenario.launch<CalendarCoverSetupActivity>(
+            Intent(context, CalendarCoverSetupActivity::class.java),
+        ).use {
             compose.onNode(hasSetTextAction()).performTextInput("my calendar text")
             compose.onNodeWithText("CONTINUE").performClick()
             assertEquals(CoverMode.DEFAULT, manager.activeMode())
@@ -197,11 +212,21 @@ class CalendarCoverInstrumentedTest {
             assertFalse(CalendarAccessManager(context).hasRule())
             compose.onNodeWithText("FINISH SETUP").performClick()
             val failureText = context.getString(R.string.calendar_setup_failed)
+            var activationFailureReported = false
             compose.waitUntil(15_000) {
-                manager.isCalendarReady() ||
-                    compose.onAllNodesWithText(failureText).fetchSemanticsNodes().isNotEmpty()
+                if (manager.isCalendarReady()) {
+                    true
+                } else {
+                    activationFailureReported = runCatching {
+                        compose.onAllNodesWithText(failureText).fetchSemanticsNodes().isNotEmpty()
+                    }.getOrDefault(false)
+                    activationFailureReported
+                }
             }
-            compose.onNodeWithText(failureText).assertDoesNotExist()
+            assertFalse(
+                "Calendar setup reported an activation failure",
+                activationFailureReported,
+            )
             assertTrue("Calendar activation did not complete successfully", manager.isCalendarReady())
             assertTrue(CalendarAccessManager(context).verify(LocalDate.now(), "my calendar text"))
             assertTrue(LocalCalendarNotesRepository(context).notes().isEmpty())
@@ -210,7 +235,9 @@ class CalendarCoverInstrumentedTest {
 
     @Test fun cancellationDoesNotChangeExistingModeOrLauncher() {
         manager.activateCalculator("58317")
-        ActivityScenario.launch<CalendarCoverSetupActivity>(Intent(context, CalendarCoverSetupActivity::class.java)).use {
+        ActivityScenario.launch<CalendarCoverSetupActivity>(
+            Intent(context, CalendarCoverSetupActivity::class.java),
+        ).use {
             compose.onNodeWithText("CANCEL").performClick()
         }
         assertEquals(CoverMode.CALCULATOR, manager.activeMode())
@@ -270,17 +297,20 @@ class CalendarCoverInstrumentedTest {
             CalendarAccessManager.PREFERENCES_NAME to "calendar",
         )) {
             put(key, JSONObject().apply {
-                context.getSharedPreferences(name, Context.MODE_PRIVATE).all.forEach { (key, value) -> put(key, value) }
+                context.getSharedPreferences(name, Context.MODE_PRIVATE).all.forEach { (key, value) ->
+                    put(key, value)
+                }
             })
         }
     }
 
     private fun capturePreview(name: String) {
         compose.waitForIdle()
-        // Use a shell-owned temporary directory: Gradle removes app data after tests.
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-        for (command in listOf("mkdir -p /data/local/tmp/calendar-previews",
-            "screencap -p /data/local/tmp/calendar-previews/$name")) {
+        for (command in listOf(
+            "mkdir -p /data/local/tmp/calendar-previews",
+            "screencap -p /data/local/tmp/calendar-previews/$name",
+        )) {
             ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use {
                 it.readBytes()
             }
