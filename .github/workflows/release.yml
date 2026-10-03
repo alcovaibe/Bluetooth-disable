@@ -45,7 +45,7 @@ jobs:
             exit 1
           fi
           if [ "v${VERSION_NAME}" != "${GITHUB_REF_NAME}" ]; then
-            echo "Tag ${GITHUB_REF_NAME} does not match versionName ${VERSION_NAME}"
+            echo "Tag ${GITHUB_REF_NAME} does not match versionName ${VERSION_NAME}; release tags must use v<version>."
             exit 1
           fi
 
@@ -65,17 +65,116 @@ jobs:
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
-      - name: Prepare release asset
+      - name: Locate release APK
+        id: apk
         shell: bash
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "Bluetooth-Disable-${GITHUB_REF_NAME}.apk"
+          VERSION_NAME=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
+          ASSET_NAME="BluetoothDisable-v${VERSION_NAME}.apk"
+          APK_PATH="app/build/outputs/apk/release/${ASSET_NAME}"
+          test -f "$APK_PATH"
+          echo "asset_name=$ASSET_NAME" >> "$GITHUB_OUTPUT"
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          APK_PATH: ${{ steps.apk.outputs.apk_path }}
         shell: bash
         run: |
           gh release create "${GITHUB_REF_NAME}" \
-            "Bluetooth-Disable-${GITHUB_REF_NAME}.apk" \
+            "$APK_PATH" \
             --title "Bluetooth Disable ${GITHUB_REF_NAME}" \
             --generate-notes
+
+      - name: Generate Device Owner provisioning QR
+        id: provisioning
+        env:
+          APK_PATH: ${{ steps.apk.outputs.apk_path }}
+          ASSET_NAME: ${{ steps.apk.outputs.asset_name }}
+        shell: bash
+        run: |
+          python3 -m pip install --disable-pip-version-check --quiet 'qrcode[pil]>=8,<9'
+          python3 <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+
+          import qrcode
+
+          apk_path = Path(os.environ["APK_PATH"])
+          asset_name = os.environ["ASSET_NAME"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          tag = os.environ["GITHUB_REF_NAME"]
+
+          digest = hashlib.sha256(apk_path.read_bytes()).digest()
+          checksum = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+          download_url = f"https://github.com/{repository}/releases/download/{tag}/{asset_name}"
+
+          payload = {
+              "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": (
+                  "com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver"
+              ),
+              "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": download_url,
+              "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": checksum,
+          }
+          payload_text = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+
+          out_dir = Path("release-provisioning")
+          out_dir.mkdir(parents=True, exist_ok=True)
+          json_path = out_dir / "bluetooth-disable-device-owner-provisioning.json"
+          qr_path = out_dir / "bluetooth-disable-device-owner-qr.png"
+          json_path.write_text(payload_text + "\n", encoding="utf-8")
+
+          qr = qrcode.QRCode(
+              error_correction=qrcode.constants.ERROR_CORRECT_M,
+              box_size=8,
+              border=4,
+          )
+          qr.add_data(payload_text)
+          qr.make(fit=True)
+          qr.make_image(fill_color="black", back_color="white").save(qr_path)
+
+          print(f"Provisioning download URL: {download_url}")
+          print(f"Provisioning APK checksum: {checksum}")
+          PY
+          echo "qr_path=release-provisioning/bluetooth-disable-device-owner-qr.png" >> "$GITHUB_OUTPUT"
+          echo "json_path=release-provisioning/bluetooth-disable-device-owner-provisioning.json" >> "$GITHUB_OUTPUT"
+
+      - name: Attach provisioning files to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QR_PATH: ${{ steps.provisioning.outputs.qr_path }}
+          JSON_PATH: ${{ steps.provisioning.outputs.json_path }}
+        shell: bash
+        run: |
+          gh release upload "${GITHUB_REF_NAME}" "$QR_PATH" "$JSON_PATH" --clobber
+
+      - name: Update repository provisioning QR
+        env:
+          QR_PATH: ${{ steps.provisioning.outputs.qr_path }}
+          JSON_PATH: ${{ steps.provisioning.outputs.json_path }}
+        shell: bash
+        run: |
+          cp "$QR_PATH" "$RUNNER_TEMP/bluetooth-disable-device-owner-qr.png"
+          cp "$JSON_PATH" "$RUNNER_TEMP/bluetooth-disable-device-owner-provisioning.json"
+
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p docs
+          cp "$RUNNER_TEMP/bluetooth-disable-device-owner-qr.png" docs/bluetooth-disable-device-owner-qr.png
+          cp "$RUNNER_TEMP/bluetooth-disable-device-owner-provisioning.json" docs/bluetooth-disable-device-owner-provisioning.json
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/bluetooth-disable-device-owner-qr.png docs/bluetooth-disable-device-owner-provisioning.json
+
+          if git diff --cached --quiet; then
+            echo "Provisioning QR is already current."
+            exit 0
+          fi
+
+          git commit -m "docs: update Device Owner QR for ${GITHUB_REF_NAME}"
+          git push origin HEAD:main
