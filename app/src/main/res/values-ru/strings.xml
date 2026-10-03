@@ -64,11 +64,13 @@
     <string name="calculator_code_mismatch">Коды не совпадают.</string>
     <string name="calculator_setup_completed">Настройка завершена</string>
     <string name="calculator_setup_failed">Не удалось завершить настройку.</string>
-    <string name="calculator_error_divide_by_zero">Деление на ноль невозможно</string>
+    <string name="calculator_error_divide_by_zero">Ошибка</string>
     <string name="calculator_error_invalid_expression">Некорректное выражение</string>
     <string name="calculator_history">История</string>
     <string name="calculator_history_empty">Вычислений пока нет.</string>
     <string name="calculator_clear_history">ОЧИСТИТЬ ИСТОРИЮ</string>
+    <string name="calculator_clear_history_confirm_title">Очистить историю?</string>
+    <string name="calculator_clear_history_confirm_message">Все записи истории калькулятора будут удалены.</string>
     <string name="calculator_close">ЗАКРЫТЬ</string>
 
     <string name="calendar_cover_confirm_title">Режим «Календарь»</string>
