@@ -15,6 +15,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.pulse.bluetoothdisable.MainActivity
+import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.CoverMode
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.cover.CoverModeNavigator
@@ -24,6 +25,7 @@ import com.pulse.bluetoothdisable.launcher.LauncherIconController
 import com.pulse.bluetoothdisable.launcher.LauncherStyle
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import java.time.LocalDate
+import kotlin.math.abs
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.*
@@ -116,8 +118,12 @@ class CalendarCoverInstrumentedTest {
             compose.onNodeWithText("Calendar").performScrollTo().performClick()
             compose.onNodeWithText("Calendar mode").assertIsDisplayed()
             val dialog = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
-            val title = compose.onNodeWithText("Calendar mode").fetchSemanticsNode().boundsInRoot
-            assertTrue("Warning is bottom aligned", title.top > dialog.center.y)
+            val sheet = compose.onNodeWithTag("cover_mode_bottom_sheet").fetchSemanticsNode().boundsInRoot
+            assertTrue(
+                "Warning sheet must be attached to the bottom of the dialog",
+                abs(sheet.bottom - dialog.bottom) <= 2f,
+            )
+            assertTrue("Warning sheet must not fill the whole dialog", sheet.top > dialog.top)
             capturePreview("calendar-warning-bottom-sheet.png")
             compose.onNodeWithText("CONTINUE").performClick()
             compose.waitUntil(5_000) {
@@ -190,10 +196,13 @@ class CalendarCoverInstrumentedTest {
             assertEquals(LauncherStyle.DEFAULT, LauncherIconController(context).selectedStyle())
             assertFalse(CalendarAccessManager(context).hasRule())
             compose.onNodeWithText("FINISH SETUP").performClick()
-            // Activation runs on Dispatchers.IO and includes encrypted verifier writes plus
-            // launcher-alias switching. API 27 emulators can legitimately complete this path
-            // just after the old 5 s test deadline, so wait for actual readiness with headroom.
-            compose.waitUntil(15_000) { manager.isCalendarReady() }
+            val failureText = context.getString(R.string.calendar_setup_failed)
+            compose.waitUntil(15_000) {
+                manager.isCalendarReady() ||
+                    compose.onAllNodesWithText(failureText).fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithText(failureText).assertDoesNotExist()
+            assertTrue("Calendar activation did not complete successfully", manager.isCalendarReady())
             assertTrue(CalendarAccessManager(context).verify(LocalDate.now(), "my calendar text"))
             assertTrue(LocalCalendarNotesRepository(context).notes().isEmpty())
         }

@@ -77,6 +77,11 @@ class LauncherIconController(context: Context) {
         }
 
     private fun setEnabled(style: LauncherStyle, enabled: Boolean) {
+        // PackageManager alias updates can be comparatively expensive on older emulator/API
+        // combinations. Do not write the same effective state repeatedly during Cover Mode
+        // transitions and test cleanup.
+        if (isEnabled(style) == enabled) return
+
         packageManager.setComponentEnabledSetting(
             component(style),
             if (enabled) {

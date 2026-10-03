@@ -2,6 +2,7 @@ package com.pulse.bluetoothdisable.cover.calendar
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -43,15 +44,22 @@ class CalendarCoverSetupActivity : ComponentActivity() {
             CalendarCoverTheme(this) {
                 CalendarSetupScreen(onCancel = ::finish) { date, text, onResult ->
                     lifecycleScope.launch {
-                        val success = withContext(Dispatchers.IO) {
-                            runCatching { CoverModeManager(this@CalendarCoverSetupActivity)
-                                .activateCalendar(date, text) }.isSuccess
+                        val result = withContext(Dispatchers.IO) {
+                            runCatching {
+                                CoverModeManager(this@CalendarCoverSetupActivity)
+                                    .activateCalendar(date, text)
+                            }
                         }
-                        if (success) {
+                        if (result.isSuccess) {
                             Toast.makeText(this@CalendarCoverSetupActivity,
                                 R.string.calendar_setup_completed, Toast.LENGTH_SHORT).show()
                             CoverModeNavigator.openCover(this@CalendarCoverSetupActivity, CoverMode.CALENDAR)
                         } else {
+                            Log.e(
+                                "CalendarCoverSetup",
+                                "Calendar Cover Mode activation failed",
+                                result.exceptionOrNull(),
+                            )
                             onResult(false)
                         }
                     }
