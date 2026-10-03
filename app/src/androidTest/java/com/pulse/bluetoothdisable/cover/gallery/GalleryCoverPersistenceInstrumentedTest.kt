@@ -168,7 +168,7 @@ class GalleryCoverPersistenceInstrumentedTest {
 
         val changed = repository.rotate(image.id, 90)
         val decodedBytes = repository.imageBytes(image.id)
-        val decoded = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+        val decoded = checkNotNull(BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size))
 
         assertNotEquals(image.encryptedFileName, changed.encryptedFileName)
         assertNotEquals(image.thumbnailFileName, changed.thumbnailFileName)
@@ -176,7 +176,6 @@ class GalleryCoverPersistenceInstrumentedTest {
         assertFalse(oldThumbFile.exists())
         assertEquals(64, changed.width)
         assertEquals(96, changed.height)
-        assertNotNull(decoded)
         assertEquals(changed.width, decoded.width)
         assertEquals(changed.height, decoded.height)
         decoded.recycle()
