@@ -3,11 +3,8 @@ package com.pulse.bluetoothdisable.cover.calculator
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
-import androidx.fragment.app.FragmentActivity
-import androidx.lifecycle.ViewModelProvider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -15,6 +12,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.ViewModelProvider
 import com.pulse.bluetoothdisable.MainActivity
 import com.pulse.bluetoothdisable.R
 import com.pulse.bluetoothdisable.cover.CoverDeviceAuthenticator
@@ -93,7 +92,6 @@ class CalculatorCoverActivity : FragmentActivity() {
     private fun beginRecovery() {
         if (!resumed) return
         val attempt = recovery.begin() ?: return
-        window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         val started = authenticator.authenticate { success ->
             if (success) recovery.authenticationSucceeded(attempt)
             else recovery.authenticationRejected(attempt)
@@ -106,7 +104,10 @@ class CalculatorCoverActivity : FragmentActivity() {
 
     private fun resetCover() {
         try {
-            if (recovery.confirmReset()) CoverModeNavigator.openDefaultMain(this)
+            if (recovery.confirmReset()) {
+                viewModel.clear()
+                CoverModeNavigator.openDefaultMain(this)
+            }
         } catch (_: Exception) {
             Toast.makeText(this, R.string.cover_recovery_error, Toast.LENGTH_LONG).show()
         }
