@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable.cover.calendar
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -10,11 +11,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.pulse.bluetoothdisable.cover.CoverModeManager
 import com.pulse.bluetoothdisable.localization.LanguageManager
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -39,12 +42,28 @@ class CalendarAuditInstrumentedTest {
 
     @Test fun monthNavigationAlwaysSelectsFirstDayOfDestinationMonth() {
         val application = ApplicationProvider.getApplicationContext<Application>()
-        val viewModel = CalendarViewModel(application)
-        viewModel.select(LocalDate.of(2024, 1, 31))
-        viewModel.moveMonth(1)
-        assertEquals(LocalDate.of(2024, 2, 1), viewModel.uiState.selectedDate)
-        viewModel.moveMonth(-1)
-        assertEquals(LocalDate.of(2024, 1, 1), viewModel.uiState.selectedDate)
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        lateinit var viewModel: CalendarViewModel
+
+        // CalendarViewModel owns Compose state and is driven from Main by the real UI.
+        // Keep direct state mutations on Main as well. The old test mutated uiState from the
+        // instrumentation thread while the initial refresh resumed on Main, which allowed two
+        // unsynchronised read-copy-write operations to race.
+        instrumentation.runOnMainSync {
+            viewModel = CalendarViewModel(application)
+            viewModel.select(LocalDate.of(2024, 1, 31))
+            viewModel.moveMonth(1)
+        }
+
+        // The refresh launched from init is intentionally allowed to complete after navigation.
+        // Verify that its notes/loading update preserves the navigation state selected on Main.
+        waitForInitialRefresh(viewModel)
+
+        instrumentation.runOnMainSync {
+            assertEquals(LocalDate.of(2024, 2, 1), viewModel.uiState.selectedDate)
+            viewModel.moveMonth(-1)
+            assertEquals(LocalDate.of(2024, 1, 1), viewModel.uiState.selectedDate)
+        }
     }
 
     @Test fun newNoteDraftSurvivesActivityRestartAndRemainsBoundToItsDate() {
@@ -120,5 +139,25 @@ class CalendarAuditInstrumentedTest {
             compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
             compose.onNodeWithText("You can store up to 25 notes on one date.").assertIsDisplayed()
         }
+    }
+
+    private fun waitForInitialRefresh(viewModel: CalendarViewModel) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val deadline = SystemClock.uptimeMillis() + INITIAL_REFRESH_TIMEOUT_MILLIS
+
+        while (SystemClock.uptimeMillis() < deadline) {
+            var loading = true
+            instrumentation.runOnMainSync {
+                loading = viewModel.uiState.loading
+            }
+            if (!loading) return
+            SystemClock.sleep(20)
+        }
+
+        fail("CalendarViewModel initial refresh did not complete")
+    }
+
+    companion object {
+        private const val INITIAL_REFRESH_TIMEOUT_MILLIS = 5_000L
     }
 }
