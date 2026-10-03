@@ -2,6 +2,7 @@ package com.pulse.bluetoothdisable.cover.gallery
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import androidx.exifinterface.media.ExifInterface
@@ -105,8 +106,14 @@ class GalleryCoverPersistenceInstrumentedTest {
     }
 
     @Test fun deletingSecretImageInvalidatesAccessWithoutTouchingOtherPhotos() {
-        val first = repository.importUris(context.contentResolver, listOf(Uri.fromFile(createPlainJpeg("first.jpg")))).single()
-        val second = repository.importUris(context.contentResolver, listOf(Uri.fromFile(createPlainJpeg("second.jpg", Color.BLUE)))).single()
+        val first = repository.importUris(
+            context.contentResolver,
+            listOf(Uri.fromFile(createPlainJpeg("first.jpg"))),
+        ).single()
+        val second = repository.importUris(
+            context.contentResolver,
+            listOf(Uri.fromFile(createPlainJpeg("second.jpg", Color.BLUE))),
+        ).single()
         val sequence = listOf(
             GalleryTapZone.TOP_RIGHT,
             GalleryTapZone.BOTTOM_LEFT,
@@ -121,6 +128,78 @@ class GalleryCoverPersistenceInstrumentedTest {
         assertFalse(access.hasRule())
         assertEquals(listOf(second.id), repository.images().map { it.id })
         assertTrue(manager.isGalleryReady())
+    }
+
+    @Test fun atomicIndexRecoversCommittedGalleryAfterInterruptedReplacement() {
+        val image = repository.importUris(
+            context.contentResolver,
+            listOf(Uri.fromFile(createPlainJpeg("atomic-recovery.jpg"))),
+        ).single()
+        val root = File(context.noBackupFilesDir, "gallery_v1")
+        val index = File(root, "index.enc")
+        val legacyBackup = File(root, "index.enc.bak")
+
+        assertTrue(index.exists())
+        legacyBackup.delete()
+        assertTrue(index.renameTo(legacyBackup))
+        index.writeBytes(byteArrayOf(0x01, 0x02, 0x03))
+
+        val recovered = GalleryRepository(context).images()
+
+        assertEquals(listOf(image.id), recovered.map { it.id })
+        assertTrue(index.exists())
+        assertFalse(legacyBackup.exists())
+        assertArrayEquals(
+            repository.imageBytes(image.id),
+            GalleryRepository(context).imageBytes(image.id),
+        )
+    }
+
+    @Test fun editingPhotoCommitsNewEncryptedFilesBeforeDeletingOldRevision() {
+        val image = repository.importUris(
+            context.contentResolver,
+            listOf(Uri.fromFile(createPlainJpeg("copy-on-write.jpg"))),
+        ).single()
+        val root = File(context.noBackupFilesDir, "gallery_v1")
+        val oldImageFile = File(File(root, "images"), image.encryptedFileName)
+        val oldThumbFile = File(File(root, "thumbs"), image.thumbnailFileName)
+        assertTrue(oldImageFile.exists())
+        assertTrue(oldThumbFile.exists())
+
+        val changed = repository.rotate(image.id, 90)
+        val decodedBytes = repository.imageBytes(image.id)
+        val decoded = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
+
+        assertNotEquals(image.encryptedFileName, changed.encryptedFileName)
+        assertNotEquals(image.thumbnailFileName, changed.thumbnailFileName)
+        assertFalse(oldImageFile.exists())
+        assertFalse(oldThumbFile.exists())
+        assertEquals(64, changed.width)
+        assertEquals(96, changed.height)
+        assertNotNull(decoded)
+        assertEquals(changed.width, decoded.width)
+        assertEquals(changed.height, decoded.height)
+        decoded.recycle()
+    }
+
+    @Test fun committedIndexReconciliationRemovesUnreferencedEncryptedFiles() {
+        val image = repository.importUris(
+            context.contentResolver,
+            listOf(Uri.fromFile(createPlainJpeg("orphan-cleanup.jpg"))),
+        ).single()
+        val root = File(context.noBackupFilesDir, "gallery_v1")
+        val orphanImage = File(File(root, "images"), "orphan.bin")
+        val orphanThumb = File(File(root, "thumbs"), "orphan.bin")
+        orphanImage.writeBytes(byteArrayOf(1, 2, 3))
+        orphanThumb.writeBytes(byteArrayOf(4, 5, 6))
+        assertTrue(orphanImage.exists())
+        assertTrue(orphanThumb.exists())
+
+        val loaded = GalleryRepository(context).images()
+
+        assertEquals(listOf(image.id), loaded.map { it.id })
+        assertFalse(orphanImage.exists())
+        assertFalse(orphanThumb.exists())
     }
 
     @Test fun appRequestsNoBroadPhotoLibraryPermission() {
