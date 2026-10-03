@@ -32,7 +32,7 @@ class HistoryRecoveryGestureInstrumentedTest {
             BluetoothDisableTheme {
                 CalculatorHistoryDrawer(
                     history.value,
-                    false,
+                    true,
                     { history.value = emptyList() },
                     enabled.value,
                     { calls.incrementAndGet() },
@@ -54,15 +54,13 @@ class HistoryRecoveryGestureInstrumentedTest {
     @Test fun blankHeaderAreaAndPaddingTriggerOncePerHold() {
         showHistory()
         val header = compose.onNodeWithTag("calculator_history_header")
-        // Both points are outside the History text: right-side blank space and
-        // the lower-left padding of the colored header rectangle.
         repeat(2) { index ->
             header.performTouchInput {
                 down(if (index == 0) Offset(width - 4f, center.y) else Offset(4f, height - 4f))
             }
-            advanceHold(7_200)
+            advanceHold(3_200)
             compose.waitUntil(2_000) { calls.get() == index + 1 }
-            compose.mainClock.advanceTimeBy(3_000)
+            compose.mainClock.advanceTimeBy(2_000)
             assertEquals(index + 1, calls.get())
             header.performTouchInput { up() }
         }
@@ -74,49 +72,48 @@ class HistoryRecoveryGestureInstrumentedTest {
         val clear = compose.onNodeWithText(context.getString(R.string.calculator_clear_history))
         for (node in listOf(row, clear)) {
             node.performTouchInput { down(center) }
-            advanceHold(7_200)
+            advanceHold(3_200)
             assertEquals(0, calls.get())
             node.performTouchInput { up() }
         }
     }
 
-    @Test fun sevenSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
+    @Test fun threeSecondHoldFiresOnceEvenWhenFingerRemainsDown() {
         showHistory()
         title().performTouchInput { down(center) }
-        advanceHold(7_200)
+        advanceHold(3_200)
         compose.waitUntil(2_000) { calls.get() == 1 }
-        SystemClock.sleep(3_000)
-        compose.mainClock.advanceTimeBy(3_000)
+        SystemClock.sleep(2_000)
+        compose.mainClock.advanceTimeBy(2_000)
         assertEquals(1, calls.get())
         title().performTouchInput { up() }
     }
 
-    @Test fun fingerDriftDuringSevenSecondHoldStillTriggers() {
+    @Test fun fingerDriftDuringThreeSecondHoldStillTriggers() {
         showHistory()
         title().performTouchInput {
             down(center)
             moveBy(Offset(18f, 10f))
             moveBy(Offset(-8f, 6f))
         }
-        advanceHold(7_200)
+        advanceHold(3_200)
         compose.waitUntil(2_000) { calls.get() == 1 }
         assertEquals(1, calls.get())
         title().performTouchInput { up() }
     }
 
-    @Test fun earlyReleaseAndDisabledHeaderDoNotTrigger() {
+    @Test fun releaseBeforeThreeSecondsAndDisabledHeaderDoNotTrigger() {
         showHistory()
         repeat(2) {
             title().performTouchInput { down(center) }
-            SystemClock.sleep(100)
-            compose.mainClock.advanceTimeBy(100)
+            advanceHold(2_800)
             title().performTouchInput { up() }
         }
 
         title().performTouchInput { down(center) }
         compose.runOnIdle { enabled.value = false }
         compose.mainClock.advanceTimeByFrame()
-        advanceHold(7_200)
+        advanceHold(3_200)
         title().performTouchInput { up() }
         assertEquals(0, calls.get())
 
