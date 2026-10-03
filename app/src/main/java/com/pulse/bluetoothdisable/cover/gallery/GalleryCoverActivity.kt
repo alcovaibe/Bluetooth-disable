@@ -3,7 +3,6 @@ package com.pulse.bluetoothdisable.cover.gallery
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.result.PickVisualMediaRequest
@@ -94,8 +93,8 @@ class GalleryCoverActivity : FragmentActivity() {
 
     private fun beginRecovery() {
         if (!resumed) return
+        viewModel.resetSequence()
         val attempt = recovery.begin() ?: return
-        window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         val started = authenticator.authenticate { success ->
             if (success) recovery.authenticationSucceeded(attempt)
             else recovery.authenticationRejected(attempt)
@@ -122,6 +121,7 @@ class GalleryCoverActivity : FragmentActivity() {
 
     override fun onPause() {
         resumed = false
+        if (::viewModel.isInitialized) viewModel.resetSequence()
         if (::recovery.isInitialized && recovery.state == CoverRecoveryManager.State.CONFIRMING) recovery.cancel()
         super.onPause()
     }
