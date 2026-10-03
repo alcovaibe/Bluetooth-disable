@@ -15,28 +15,40 @@ internal object CalculatorEvaluator {
         is BinaryNode -> evaluateBinary(node)
     }
 
-    private fun evaluateBinary(node: BinaryNode): BigDecimal {
-        val left = evaluate(node.left)
-
-        if ((node.operator == BinaryOperator.ADD || node.operator == BinaryOperator.SUBTRACT) &&
-            node.right is PercentNode
+    fun applyBinary(
+        left: BigDecimal,
+        operator: BinaryOperator,
+        right: BigDecimal,
+        rightIsPercent: Boolean = false,
+    ): BigDecimal {
+        if (rightIsPercent &&
+            (operator == BinaryOperator.ADD || operator == BinaryOperator.SUBTRACT)
         ) {
-            val percent = evaluate(node.right)
-            val delta = left.multiply(percent)
-            return if (node.operator == BinaryOperator.ADD) {
+            val delta = left.multiply(right)
+            return if (operator == BinaryOperator.ADD) {
                 left.add(delta)
             } else {
                 left.subtract(delta)
             }
         }
 
-        val right = evaluate(node.right)
-        return when (node.operator) {
+        return when (operator) {
             BinaryOperator.ADD -> left.add(right)
             BinaryOperator.SUBTRACT -> left.subtract(right)
             BinaryOperator.MULTIPLY -> left.multiply(right)
             BinaryOperator.DIVIDE -> divide(left, right)
         }
+    }
+
+    private fun evaluateBinary(node: BinaryNode): BigDecimal {
+        val left = evaluate(node.left)
+        val right = evaluate(node.right)
+        return applyBinary(
+            left = left,
+            operator = node.operator,
+            right = right,
+            rightIsPercent = node.right is PercentNode,
+        )
     }
 
     private fun divide(left: BigDecimal, right: BigDecimal): BigDecimal {
