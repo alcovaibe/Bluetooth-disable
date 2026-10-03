@@ -10,10 +10,10 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val COVER_RECOVERY_HOLD_MILLIS = 7_000L
+internal const val COVER_RECOVERY_HOLD_MILLIS = 3_000L
 
 /**
- * Passive seven-second hold listener used by cover recovery targets.
+ * Passive three-second hold listener used by cover recovery targets.
  *
  * The gesture intentionally ignores touch slop, pointer consumption and small movement so the
  * recovery hold remains reliable across OEM devices and parent components such as drawers and
