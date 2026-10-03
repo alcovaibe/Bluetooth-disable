@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerValue
@@ -28,12 +29,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,9 +57,10 @@ fun CalculatorScreen(
     onRecoveryHold: () -> Unit = {},
 ) {
     val state = viewModel.uiState
-    val useComma = LocalConfiguration.current.locales[0].language == "ru"
+    val useComma = true
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var showClearHistoryConfirmation by remember { mutableStateOf(false) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -62,7 +68,7 @@ fun CalculatorScreen(
             CalculatorHistoryDrawer(
                 history = state.history,
                 useComma = useComma,
-                onClear = viewModel::clearHistory,
+                onClear = { showClearHistoryConfirmation = true },
                 recoveryEnabled = recoveryEnabled && drawerState.isOpen && !drawerState.isAnimationRunning,
                 onRecoveryHold = onRecoveryHold,
             )
@@ -162,6 +168,29 @@ fun CalculatorScreen(
                 )
             }
         }
+    }
+
+    if (showClearHistoryConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showClearHistoryConfirmation = false },
+            title = { Text(stringResource(R.string.calculator_clear_history_confirm_title)) },
+            text = { Text(stringResource(R.string.calculator_clear_history_confirm_message)) },
+            dismissButton = {
+                TextButton(onClick = { showClearHistoryConfirmation = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.clearHistory()
+                        showClearHistoryConfirmation = false
+                    },
+                ) {
+                    Text(stringResource(R.string.calculator_clear_history))
+                }
+            },
+        )
     }
 }
 
