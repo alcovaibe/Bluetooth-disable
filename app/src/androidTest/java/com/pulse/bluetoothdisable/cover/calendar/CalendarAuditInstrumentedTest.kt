@@ -57,6 +57,9 @@ class CalendarAuditInstrumentedTest {
                 ViewModelProvider(activity)[CalendarViewModel::class.java].select(date)
             }
             compose.onNodeWithContentDescription("Add note").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isNotEmpty()
+            }
             compose.onNodeWithTag("calendar_note_text").performTextInput("draft text")
             compose.onNodeWithText("CANCEL").performClick()
             compose.waitUntil(5_000) {
@@ -72,6 +75,9 @@ class CalendarAuditInstrumentedTest {
                 ViewModelProvider(activity)[CalendarViewModel::class.java].select(otherDate)
             }
             compose.onNodeWithContentDescription("Add note").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isNotEmpty()
+            }
             assertEquals(
                 "",
                 compose.onNodeWithTag("calendar_note_text")
@@ -83,6 +89,9 @@ class CalendarAuditInstrumentedTest {
                 ViewModelProvider(activity)[CalendarViewModel::class.java].select(date)
             }
             compose.onNodeWithContentDescription("Add note").performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isNotEmpty()
+            }
             assertEquals(
                 "draft text",
                 compose.onNodeWithTag("calendar_note_text")
