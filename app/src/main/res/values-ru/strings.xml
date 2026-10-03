@@ -99,6 +99,11 @@
     <string name="calendar_no_notes">На эту дату нет заметок.</string>
     <string name="calendar_storage_error">Не удалось прочитать или сохранить заметки. Повторите попытку.</string>
     <string name="calendar_retry">Повторить</string>
+    <string name="calendar_note_empty">Введите текст заметки.</string>
+    <string name="calendar_note_too_long">Заметка может содержать не более 120 символов.</string>
+    <string name="calendar_note_duplicate">Такая заметка уже существует на эту дату.</string>
+    <string name="calendar_note_limit">На одну дату можно сохранить не более 25 заметок.</string>
+    <string name="calendar_close">ЗАКРЫТЬ</string>
 
     <string name="notes_cover_confirm_title">Режим «Заметки»</string>
     <string name="notes_cover_confirm_message">Приложение будет запускаться как «Заметки». Создайте или выберите локальную заметку, а затем выделите скрытый фрагмент текста. Нажатие именно на этот фрагмент откроет основной экран приложения.</string>

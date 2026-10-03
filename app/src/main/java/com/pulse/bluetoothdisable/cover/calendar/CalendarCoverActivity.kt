@@ -3,7 +3,6 @@ package com.pulse.bluetoothdisable.cover.calendar
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.view.HapticFeedbackConstants
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.material3.AlertDialog
@@ -72,10 +71,14 @@ class CalendarCoverActivity : FragmentActivity() {
                         title = { Text(stringResource(R.string.cover_recovery_title)) },
                         text = { Text(stringResource(R.string.calendar_recovery_description)) },
                         dismissButton = {
-                            TextButton(onClick = recovery::cancel) { Text(stringResource(R.string.cancel)) }
+                            TextButton(onClick = recovery::cancel) {
+                                Text(stringResource(R.string.cancel))
+                            }
                         },
                         confirmButton = {
-                            TextButton(onClick = ::resetCover) { Text(stringResource(R.string.cover_recovery_reset)) }
+                            TextButton(onClick = ::resetCover) {
+                                Text(stringResource(R.string.cover_recovery_reset))
+                            }
                         },
                     )
                 }
@@ -86,10 +89,12 @@ class CalendarCoverActivity : FragmentActivity() {
     private fun beginRecovery() {
         if (!resumed) return
         val attempt = recovery.begin() ?: return
-        window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         val started = authenticator.authenticate { success ->
-            if (success) recovery.authenticationSucceeded(attempt)
-            else recovery.authenticationRejected(attempt)
+            if (success) {
+                recovery.authenticationSucceeded(attempt)
+            } else {
+                recovery.authenticationRejected(attempt)
+            }
         }
         if (!started) {
             recovery.authenticationRejected(attempt)
@@ -112,7 +117,10 @@ class CalendarCoverActivity : FragmentActivity() {
 
     override fun onPause() {
         resumed = false
-        if (::recovery.isInitialized && recovery.state == CoverRecoveryManager.State.CONFIRMING) recovery.cancel()
+        if (::viewModel.isInitialized) viewModel.persistOpenDraft()
+        if (::recovery.isInitialized && recovery.state == CoverRecoveryManager.State.CONFIRMING) {
+            recovery.cancel()
+        }
         super.onPause()
     }
 
@@ -128,6 +136,7 @@ class CalendarCoverActivity : FragmentActivity() {
         if (::recovery.isInitialized) recovery.cancel()
         if (::viewModel.isInitialized) {
             viewModel.closeEditor()
+            viewModel.closeViewer()
             viewModel.today()
             viewModel.refresh()
         }

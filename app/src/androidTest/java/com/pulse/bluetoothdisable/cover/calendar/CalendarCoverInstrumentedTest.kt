@@ -149,6 +149,7 @@ class CalendarCoverInstrumentedTest {
             capturePreview("calendar-saved-note.png")
             compose.onNodeWithText("открой меня").performClick()
             compose.waitUntil(5_000) { isMainResumed() }
+            assertTrue(LocalCalendarNotesRepository(context).notes().any { it.text == "открой меня" })
             compose.onNodeWithText("HIDE").assertIsDisplayed().performClick()
             compose.waitUntil(5_000) { !isMainResumed() }
             compose.onNodeWithTag("calendar_day_${LocalDate.now()}").assertExists()
@@ -159,7 +160,7 @@ class CalendarCoverInstrumentedTest {
         }
     }
 
-    @Test fun mismatchedDateAndCaseOpenOrdinaryEditor() {
+    @Test fun mismatchedDateAndCaseOpenReadOnlyViewer() {
         manager.activateCalendar(date, "открой меня")
         val repo = LocalCalendarNotesRepository(context)
         val wrongDate = repo.save(date.plusDays(1), "открой меня")
@@ -172,9 +173,11 @@ class CalendarCoverInstrumentedTest {
                 }
                 compose.waitUntil(5_000) { compose.onAllNodesWithText(note.text).fetchSemanticsNodes().isNotEmpty() }
                 compose.onNodeWithText(note.text).performClick()
-                compose.waitUntil(5_000) { compose.onAllNodesWithTag("calendar_note_text").fetchSemanticsNodes().isNotEmpty() }
+                compose.waitUntil(5_000) { compose.onAllNodesWithTag("calendar_note_view").fetchSemanticsNodes().isNotEmpty() }
+                compose.onNodeWithTag("calendar_note_text").assertDoesNotExist()
+                compose.onNodeWithTag("calendar_note_view").assertIsDisplayed()
                 assertFalse(isMainResumed())
-                compose.onNodeWithText("CANCEL").performClick()
+                compose.onNodeWithText("CLOSE").performClick()
             }
         }
     }

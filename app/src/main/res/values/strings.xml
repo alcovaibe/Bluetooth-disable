@@ -99,6 +99,11 @@
     <string name="calendar_no_notes">No notes for this date.</string>
     <string name="calendar_storage_error">Unable to read or save notes. Please try again.</string>
     <string name="calendar_retry">Retry</string>
+    <string name="calendar_note_empty">Enter note text.</string>
+    <string name="calendar_note_too_long">A note can contain at most 120 characters.</string>
+    <string name="calendar_note_duplicate">This note already exists on this date.</string>
+    <string name="calendar_note_limit">You can store up to 25 notes on one date.</string>
+    <string name="calendar_close">CLOSE</string>
 
     <string name="notes_cover_confirm_title">Notes mode</string>
     <string name="notes_cover_confirm_message">The app will launch as Notes. Create or choose a local note, then select a hidden text fragment inside it. Tapping that exact fragment will open the main app screen.</string>

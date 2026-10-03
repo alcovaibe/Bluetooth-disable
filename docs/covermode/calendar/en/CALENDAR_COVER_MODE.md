@@ -1,113 +1,93 @@
-# Calendar Cover Mode — 1.0.8 (versionCode 9)
+# Calendar Cover Mode — 1.0.19 (versionCode 21)
 
-The starting `main` already contained versionName 1.0.7 and versionCode 8.
-This change increments versionCode exactly once and adds only the Calendar cover.
-Default and Calculator remain supported. Notes/Gallery enum values and old aliases
-remain reserved, but they are not selectable or implemented as cover modes.
+Calendar Cover Mode disguises Bluetooth Disable as a local calendar. The Calendar data model,
+secret access verifier and recovery flow remain local to the device and do not require calendar,
+account, Internet or cloud permissions.
 
-## User flow
+## Hidden access
 
 1. Main screen → Change icon → Calendar → Continue.
-2. Choose an access date and a note text (3–100 Unicode characters after trimming).
-3. Review the displayed date/text and instructions → Finish setup.
-4. The old task is cleared and the launcher opens the local Calendar.
-5. Tap the month/year heading to choose a distant date. The Material date picker
-   provides year selection and a text-input toggle; supported years are 1–9999.
-6. On the chosen date, add a note containing the configured text and save it.
-   Saving never opens the real app. Tap the saved note to enter MainActivity.
-7. Hide opens a fresh Calendar at today and clears MainActivity from the task.
-   Back then exits Calendar instead of revealing MainActivity.
+2. Choose an access date and secret note text.
+3. Confirm setup. Setup stores the access rule but does not create the matching note.
+4. In Calendar Cover Mode, manually create a note on the configured date with the configured text.
+5. Tapping an exact matching note opens the real app immediately.
 
-Cancel, Back or process death before Finish setup does not write configuration or
-change the launcher. No access note is automatically created by setup.
+The access rule remains date-bound and case-sensitive. Leading/trailing whitespace is normalized.
+The verifier is HMAC-SHA256 with a non-exportable Android Keystore key; the configured secret text
+is not stored as plaintext. Access text remains limited to 3–100 UTF-16 code units so every valid
+secret can also be represented by a Calendar note.
 
-## Components
+Changing the text of the matching note makes it an ordinary note until it once again exactly matches
+the configured date/text rule. Setup never creates an access note automatically, and a successful
+unlock never deletes the matching note.
 
-- `CalendarCoverSetupActivity`: independent setup and final confirmation, in-memory
-  draft secrets, asynchronous activation. Both activities use existing app language
-  and theme preferences. Application strings have English and Russian resources.
-- `CalendarCoverActivity` / `CalendarScreen` / `CalendarViewModel`: Monday-first
-  month grid, selection/today markers, adjacent months, direct date selection,
-  scrollable notes, add/edit/delete and ordinary storage-error retry handling.
-- `CalendarDates`: `LocalDate` / `YearMonth` calculations, localized display and UTC
-  conversion for the Material picker. Stored dates use ISO `YYYY-MM-DD`.
-- `CalendarNote`: UUID, LocalDate, text and creation/update timestamps. A date can
-  have multiple notes. Editing preserves the note ID and creation timestamp.
-- `CalendarNotesRepository` / `LocalCalendarNotesRepository`: local JSON model,
-  synchronized repository access and `AtomicFile` replacement. UI never touches
-  SharedPreferences or files. Disk and verification work run on `Dispatchers.IO`.
-- `CalendarNotesCipher`: the JSON payload is encrypted with AES-256-GCM and a
-  non-exportable Android Keystore key. The on-disk envelope holds version/IV/data;
-  even a saved access note is not plaintext in files. Corrupt or undecryptable data
-  raises a normal storage error rather than silently replacing existing notes.
-- `CalendarAccessManager`: stores the ISO secret date plus a Base64 HMAC verifier,
-  never a configured text. The HMAC-SHA256 key is device-local Android Keystore.
-  The signed payload includes a domain prefix, date and trimmed text. Verification
-  requires the exact date and case-sensitive text; only leading/trailing whitespace
-  is normalized. Verifier comparison uses `MessageDigest.isEqual`.
+## Calendar notes
 
-All cards look the same. On a card tap, `verify(note.date, note.text)` either calls
-`CoverModeNavigator.openMainFromCover(CALENDAR)` or opens the ordinary editor.
-There is no password/date error, special lock icon, color or secret-link label.
-Every card has ordinary Edit/Delete controls, including a matching note.
+- Notes are plain text only, with internal line breaks allowed.
+- Leading/trailing whitespace and line breaks are trimmed on save.
+- Empty notes are rejected.
+- Maximum saved note length: 120 UTF-16 code units (`String.length`).
+- Maximum notes per date: 25.
+- Exact duplicates on the same date are rejected after edge-whitespace normalization; case still matters.
+- Existing note dates cannot be changed by editing.
+- Notes are ordered by most recent `updatedAt`; a newly saved note is therefore shown first, and editing
+  moves that note to the top.
+- Tapping an ordinary non-matching note opens a read-only viewer. Edit/Delete remain separate card actions.
+- Delete always requires confirmation.
 
-## Activation and navigation
+`LocalCalendarNotesRepository` stores notes in an `AtomicFile`. The JSON payload is encrypted with
+AES-256-GCM using a non-exportable Android Keystore key. Corrupt or undecryptable data is surfaced as
+a storage error and is never silently replaced.
 
-`CoverModeManager` coordinates Default/Calculator/Calendar activation. It writes a
-durable rollback journal containing the previous mode, launcher/hidden state and
-opaque configuration values before changing configuration. Previous Keystore keys
-remain available until the new configuration, alias and mode are persisted and
-the journal is cleared (commit point). Failure/process death before that point
-restores the previous state, including when reconfiguring the same cover mode.
-Old pre-journal pending setup is reset to Default for upgrade safety.
+## Persistent drafts
 
-After successful activation, the previous mode's access verifier/key is removed.
-Startup also clears inactive access configurations in case the process died after
-the commit point but before cleanup. Switching either way always uses that mode's
-setup. Calendar notes remain local across ordinary mode switches. An explicit
-reset or detected device transfer clears notes and their encryption key too.
+Unsaved editor text is persisted as an encrypted draft and survives activity/app restarts. New-note
+drafts are bound to their original date; edit drafts are bound to the note ID. Drafts are removed after
+a successful save, or when the user clears the text. Calendar drafts use the same device-local encrypted
+storage boundary as Calendar notes and are cleared with Calendar local data.
 
-The existing navigator centrally maps Calculator and Calendar to their activities.
-It passes an internal origin to non-exported MainActivity and checks the active mode
-before accepting it. Calendar and setup activities are non-exported; only the
-Calendar launcher alias is exported. Hide/initial cover launch use
-`FLAG_ACTIVITY_NEW_TASK | FLAG_ACTIVITY_CLEAR_TASK` with the cover activity.
-The alias icon reuses the existing `calendar_icon.webp`; its localized name is
-Calendar / Календарь. No Internet/calendar permissions, CalendarContract, accounts,
-cloud integrations or analytics are introduced.
+## Calendar navigation and dates
 
-Existing all-data backup/D2D exclusion rules remain in force. DeviceTransferGuard
-explicitly clears the Calendar verifier, note encryption key, files and preferences,
-and restores Default launcher state. Copied verifiers/files cannot be used without
-the original device's Keystore keys.
+- Every fresh Calendar Cover launch starts on today.
+- Returning through Hide starts on today.
+- Today selects the current local date and month.
+- Previous/Next month always selects day 1 of the destination month.
+- Supported year range: 1–9999.
+- Material Date Picker conversion is performed through UTC calendar-date milliseconds, so changing the
+  device timezone must not shift a selected date by ±1 day.
+- RU/EN localization changes UI/date rendering only; user note text is never translated or rewritten.
 
-## Validation
+## Emergency recovery
 
-Unit coverage includes exact/trimmed/case-sensitive date/text rules, Unicode length,
-all month lengths and Monday-first alignment, leap/century years, invalid leap dates,
-December/January boundaries, ISO storage, UTC picker conversions and RU/EN display.
-Existing Calculator and Bluetooth protection unit tests remain in the suite.
+The shared hidden recovery gesture remains a passive three-second hold. Calendar exposes it on both the
+Calendar title and Today action. A successful hold starts Android system authentication, then a separate
+reset confirmation. There is no recovery haptic feedback or visible hold progress.
 
-Android instrumentation covers the real Keystore verifier, copied verifier rejection,
-encrypted note persistence/edit/delete/date assignment and key-loss rejection,
-launcher alias targets, final setup confirmation/cancellation, save-without-unlock,
-ordinary mismatches, matching note → Main → Hide → Back, both mode transitions,
-reset and interrupted activation recovery including same-mode reconfiguration.
+Confirmed Calendar recovery disables the disguise and restores the default launcher while preserving
+all Calendar notes/drafts. Authentication cancellation/failure, confirmation cancellation, lifecycle
+changes and repeated attempts must not reset the mode accidentally.
 
-Android CI retains its build/unit/lint/test-APK job and adds emulator instrumentation
-on API 29 and 36 with uploaded test reports. Run locally with:
+## Backup, transfer and reinstall
 
-```sh
-./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
-./gradlew connectedDebugAndroidTest
-```
+All application-private files/preferences remain excluded from Android cloud backup and device-to-device
+transfer. `DeviceTransferGuard` is the additional OEM-migration defense. Calendar notes, drafts and secret
+configuration are not intended to move to another device. Uninstall/reinstall starts Calendar data from
+an empty state.
 
-Manual UI checks: RU/EN, dark/light themes, year/date picker input, February 2024,
-editing/deleting a matching access note with its ordinary controls, canceled setup
-from Calculator, Hide followed by Back and fresh launcher launch at today.
+## Audit validation
 
-## Deliberate scope limits
+The audit regression suite covers:
 
-No Notes Cover Mode, Gallery Cover Mode, system calendar import, reminders,
-notifications, online sync or telemetry. No automatic merge, release tagging or
-signed production APK publishing is performed by this PR.
+- access date/text exactness, normalization, case sensitivity and Keystore-backed verification;
+- 120-unit text limit, blank/duplicate rejection and the 25-notes-per-date limit;
+- creation/update ordering and immutable note dates;
+- encrypted note and draft persistence plus key-loss/corruption behavior;
+- read-only ordinary-note taps and unchanged explicit Edit/Delete actions;
+- draft persistence across Calendar activity restarts;
+- first-day month navigation, leap/century years, 1–9999 boundaries and timezone-safe picker conversion;
+- matching note → Main → Hide → fresh today state;
+- shared three-second authenticated emergency recovery and preservation of Calendar user data.
+
+CI is expected to run unit tests, lint, debug Android tests and release assembly, with instrumented coverage
+across API 26–36 where the GitHub emulator environment supports that level. Physical-device recovery and
+OEM-specific UI behavior remain manual release checks.
