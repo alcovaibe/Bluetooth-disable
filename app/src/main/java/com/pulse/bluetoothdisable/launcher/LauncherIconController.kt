@@ -3,6 +3,7 @@ package com.pulse.bluetoothdisable.launcher
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.content.edit
 
 enum class LauncherStyle(
@@ -41,26 +42,40 @@ class LauncherIconController(context: Context) {
         check(preferences.edit()
             .putString(KEY_SELECTED_STYLE, style.preferenceValue)
             .commit()) { "Unable to persist launcher style" }
-        activate(style)
+        applyStyle(style)
     }
 
     fun hide() {
-        LauncherStyle.values().forEach { style ->
-            setEnabled(style, false)
-        }
+        applyStyle(null)
     }
 
     fun show() {
-        activate(storedStyle())
+        applyStyle(storedStyle())
     }
 
-    private fun activate(style: LauncherStyle) {
-        // Enable the replacement first so the launcher is never intentionally left
-        // without an entry during an icon/name switch.
-        setEnabled(style, true)
-        LauncherStyle.values()
+    private fun applyStyle(style: LauncherStyle?) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val settings = LauncherStyle.entries.map { candidate ->
+                PackageManager.ComponentEnabledSetting(
+                    component(candidate),
+                    if (candidate == style) {
+                        PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                    } else {
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                    },
+                    PackageManager.DONT_KILL_APP,
+                )
+            }
+            packageManager.setComponentEnabledSettings(settings)
+            return
+        }
+
+        // Before API 33 PackageManager has no atomic batch API. Enable the replacement first
+        // so older Android versions are never intentionally left without a launcher entry.
+        if (style != null) setEnabled(style, true)
+        LauncherStyle.entries
             .filterNot { it == style }
-            .forEach { other -> setEnabled(other, false) }
+            .forEach { candidate -> setEnabled(candidate, false) }
     }
 
     private fun storedStyle(): LauncherStyle {
@@ -77,9 +92,7 @@ class LauncherIconController(context: Context) {
         }
 
     private fun setEnabled(style: LauncherStyle, enabled: Boolean) {
-        // PackageManager alias updates can be comparatively expensive on older emulator/API
-        // combinations. Do not write the same effective state repeatedly during Cover Mode
-        // transitions and test cleanup.
+        // Avoid repeating expensive PackageManager writes on pre-API 33 devices.
         if (isEnabled(style) == enabled) return
 
         packageManager.setComponentEnabledSetting(
