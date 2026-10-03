@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   license-check:
@@ -12,5 +13,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check project dependencies
-        run: echo "Dependency license review required before release"
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Generate dependency license report
+        run: ./gradlew :app:licenseReport
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-license-report
+          path: '**/build/reports/licenses/**'
