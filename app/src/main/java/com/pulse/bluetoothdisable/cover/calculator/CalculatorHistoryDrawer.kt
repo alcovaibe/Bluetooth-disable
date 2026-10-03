@@ -13,12 +13,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -41,6 +46,8 @@ fun CalculatorHistoryDrawer(
     recoveryEnabled: Boolean = false,
     onRecoveryHold: () -> Unit = {},
 ) {
+    var showClearConfirmation by rememberSaveable { mutableStateOf(false) }
+
     ModalDrawerSheet(
         modifier = Modifier
             .width(290.dp)
@@ -104,18 +111,43 @@ fun CalculatorHistoryDrawer(
 
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         TextButton(
-            onClick = onClear,
+            onClick = { showClearConfirmation = true },
             enabled = history.isNotEmpty(),
             modifier = Modifier
                 .fillMaxWidth()
                 .navigationBarsPadding()
-                .padding(horizontal = 12.dp, vertical = 6.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+                .testTag("calculator_history_clear"),
         ) {
             Text(
                 text = stringResource(R.string.calculator_clear_history),
                 fontWeight = FontWeight.Bold,
             )
         }
+    }
+
+    if (showClearConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmation = false },
+            title = { Text(stringResource(R.string.calculator_clear_history_title)) },
+            text = { Text(stringResource(R.string.calculator_clear_history_confirmation)) },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmation = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showClearConfirmation = false
+                        onClear()
+                    },
+                    modifier = Modifier.testTag("calculator_history_clear_confirm"),
+                ) {
+                    Text(stringResource(R.string.calculator_clear_history))
+                }
+            },
+        )
     }
 }
 

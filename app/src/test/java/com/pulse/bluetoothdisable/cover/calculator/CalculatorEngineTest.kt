@@ -2,6 +2,7 @@ package com.pulse.bluetoothdisable.cover.calculator
 
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -30,6 +31,20 @@ class CalculatorEngineTest {
     @Test fun multiplyTwentyPercent() = assertValue("50 × 20%", "10")
     @Test fun divideTwentyPercent() = assertValue("10 ÷ 20%", "50")
 
+    @Test fun repeatedAddition() = assertRepeated("5 + 2", "7", "9")
+    @Test fun repeatedSubtraction() = assertRepeated("10 - 3", "7", "4")
+    @Test fun repeatedMultiplication() = assertRepeated("4 × 3", "12", "36")
+    @Test fun repeatedDivision() = assertRepeated("20 ÷ 2", "10", "5")
+    @Test fun repeatedPercentUsesCurrentResultAsNewBase() = assertRepeated("200 + 10%", "220", "242")
+
+    @Test
+    fun scientificDisplayAvoidsENotationAndUsesDecimalComma() {
+        assertEquals("1 × 10^100", CalculatorFormatter.formatDisplay(BigDecimal("1E+100")))
+        assertEquals("1 × 10^-100", CalculatorFormatter.formatDisplay(BigDecimal("1E-100")))
+        assertEquals("1,25", CalculatorFormatter.formatDisplay(BigDecimal("1.25")))
+        assertTrue(!CalculatorFormatter.format(BigDecimal("1E+100")).contains('E'))
+    }
+
     @Test
     fun divisionByZeroIsControlled() {
         assertEquals(
@@ -53,6 +68,17 @@ class CalculatorEngineTest {
                 val result = engine.evaluate(expression)
                 assertTrue(result is CalculatorEvaluation.Failure)
             }
+    }
+
+    private fun assertRepeated(expression: String, current: String, expected: String) {
+        val operation = engine.repeatOperation(expression)
+        assertNotNull(operation)
+        val result = engine.evaluateRepeat(BigDecimal(current), operation!!)
+        assertTrue(result is CalculatorEvaluation.Success)
+        assertEquals(
+            0,
+            (result as CalculatorEvaluation.Success).value.compareTo(BigDecimal(expected)),
+        )
     }
 
     private fun assertValue(expression: String, expected: String) {

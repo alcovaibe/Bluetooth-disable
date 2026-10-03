@@ -64,11 +64,13 @@
     <string name="calculator_code_mismatch">The codes do not match.</string>
     <string name="calculator_setup_completed">Setup completed</string>
     <string name="calculator_setup_failed">Unable to complete setup.</string>
-    <string name="calculator_error_divide_by_zero">Cannot divide by zero</string>
+    <string name="calculator_error_divide_by_zero">Error</string>
     <string name="calculator_error_invalid_expression">Invalid expression</string>
     <string name="calculator_history">History</string>
     <string name="calculator_history_empty">No calculations yet.</string>
     <string name="calculator_clear_history">CLEAR HISTORY</string>
+    <string name="calculator_clear_history_title">Clear history?</string>
+    <string name="calculator_clear_history_confirmation">All calculator history entries will be deleted.</string>
     <string name="calculator_close">CLOSE</string>
 
     <string name="calendar_cover_confirm_title">Calendar mode</string>

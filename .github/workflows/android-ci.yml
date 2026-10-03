@@ -38,15 +38,55 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Verify project
-        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+      - name: Create ephemeral release signing key
+        shell: bash
+        run: |
+          keytool -genkeypair \
+            -keystore "$RUNNER_TEMP/calculator-ci-release.jks" \
+            -storepass calculator-ci-password \
+            -keypass calculator-ci-password \
+            -alias calculator-ci \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 3650 \
+            -dname "CN=Bluetooth Disabler CI, OU=CI, O=Bluetooth Disabler, C=XX"
+
+      - name: Verify debug and release builds
+        env:
+          RELEASE_STORE_FILE: ${{ runner.temp }}/calculator-ci-release.jks
+          RELEASE_STORE_PASSWORD: calculator-ci-password
+          RELEASE_KEY_ALIAS: calculator-ci
+          RELEASE_KEY_PASSWORD: calculator-ci-password
+        run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest assembleRelease
 
   instrumented-tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 29, 33, 36]
+        include:
+          - api-level: 26
+            arch: x86_64
+          - api-level: 27
+            arch: x86
+          - api-level: 28
+            arch: x86_64
+          - api-level: 29
+            arch: x86_64
+          - api-level: 30
+            arch: x86_64
+          - api-level: 31
+            arch: x86_64
+          - api-level: 32
+            arch: x86_64
+          - api-level: 33
+            arch: x86_64
+          - api-level: 34
+            arch: x86_64
+          - api-level: 35
+            arch: x86_64
+          - api-level: 36
+            arch: x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,7 +114,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           target: google_apis
-          arch: x86_64
+          arch: ${{ matrix.arch }}
           disable-animations: true
           script: |
             ./gradlew connectedDebugAndroidTest
