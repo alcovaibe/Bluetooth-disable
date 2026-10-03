@@ -190,7 +190,10 @@ class CalendarCoverInstrumentedTest {
             assertEquals(LauncherStyle.DEFAULT, LauncherIconController(context).selectedStyle())
             assertFalse(CalendarAccessManager(context).hasRule())
             compose.onNodeWithText("FINISH SETUP").performClick()
-            compose.waitUntil(5_000) { manager.isCalendarReady() }
+            // Activation runs on Dispatchers.IO and includes encrypted verifier writes plus
+            // launcher-alias switching. API 27 emulators can legitimately complete this path
+            // just after the old 5 s test deadline, so wait for actual readiness with headroom.
+            compose.waitUntil(15_000) { manager.isCalendarReady() }
             assertTrue(CalendarAccessManager(context).verify(LocalDate.now(), "my calendar text"))
             assertTrue(LocalCalendarNotesRepository(context).notes().isEmpty())
         }
