@@ -28,8 +28,11 @@ class LocalCalendarNotesRepository(context: Context) : CalendarNotesRepository {
         }
 
         val clock = System.currentTimeMillis()
-        val updatedAt = if (previous != null && clock <= previous.updatedAt) {
-            previous.updatedAt + 1
+        val latestStoredTimestamp = notes.maxOfOrNull { note ->
+            maxOf(note.createdAt, note.updatedAt)
+        }
+        val timestamp = if (latestStoredTimestamp != null && clock <= latestStoredTimestamp) {
+            latestStoredTimestamp + 1
         } else {
             clock
         }
@@ -37,8 +40,8 @@ class LocalCalendarNotesRepository(context: Context) : CalendarNotesRepository {
             id = previous?.id ?: UUID.randomUUID().toString(),
             date = previous?.date ?: date,
             text = normalized,
-            createdAt = previous?.createdAt ?: updatedAt,
-            updatedAt = updatedAt,
+            createdAt = previous?.createdAt ?: timestamp,
+            updatedAt = timestamp,
         )
         notes.removeAll { it.id == note.id }
         notes.add(note)
