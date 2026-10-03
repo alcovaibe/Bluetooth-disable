@@ -231,7 +231,10 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         draftWriteJob?.cancel()
         draftWriteJob = viewModelScope.launch {
             delay(DRAFT_WRITE_DELAY_MILLIS)
-            withContext(Dispatchers.IO) { writeDraft(snapshot) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching { writeDraft(snapshot) }
+            }
+            if (result.isFailure) uiState = uiState.copy(storageError = true)
         }
     }
 
@@ -239,7 +242,10 @@ class CalendarViewModel(application: Application) : AndroidViewModel(application
         val snapshot = draftSnapshot() ?: return
         draftWriteJob?.cancel()
         draftWriteJob = viewModelScope.launch {
-            withContext(Dispatchers.IO) { writeDraft(snapshot) }
+            val result = withContext(Dispatchers.IO) {
+                runCatching { writeDraft(snapshot) }
+            }
+            if (result.isFailure) uiState = uiState.copy(storageError = true)
         }
     }
 
