@@ -199,7 +199,7 @@ class CalendarCoverInstrumentedTest {
             val failureText = context.getString(R.string.calendar_setup_failed)
             var activationFailureReported = false
             compose.waitUntil(15_000) {
-                if (manager.isCalendarReady()) {
+                if (manager.activeMode() == CoverMode.CALENDAR) {
                     true
                 } else {
                     activationFailureReported = runCatching {
@@ -209,6 +209,7 @@ class CalendarCoverInstrumentedTest {
                 }
             }
             assertFalse("Calendar setup reported an activation failure", activationFailureReported)
+            assertEquals(CoverMode.CALENDAR, manager.activeMode())
             assertTrue("Calendar activation did not complete successfully", manager.isCalendarReady())
             assertTrue(CalendarAccessManager(context).verify(LocalDate.now(), "my calendar text"))
             assertTrue(LocalCalendarNotesRepository(context).notes().isEmpty())
