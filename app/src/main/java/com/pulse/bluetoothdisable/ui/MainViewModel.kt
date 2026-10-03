@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 data class ProtectionUiState(
@@ -33,6 +35,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(ProtectionUiState())
     val uiState: StateFlow<ProtectionUiState> = _uiState.asStateFlow()
 
+    private val operationMutex = Mutex()
     private var operationJob: Job? = null
 
     init {
@@ -55,13 +58,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun launchEngineOperation(operation: () -> ProtectionResult) {
         // DevicePolicyManager and Bluetooth adapter calls are system-service work and must not
-        // block Compose's main/UI thread. Only the newest requested operation is allowed to
-        // publish a result; a stale cancelled operation may still finish in the platform, but
-        // it cannot overwrite the state produced by the newer request.
+        // block Compose's main/UI thread. The mutex also prevents a cancelled but already-running
+        // platform call from racing a newer request. Only the newest coroutine may publish UI state.
         operationJob?.cancel()
         operationJob = viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
-                operation()
+                operationMutex.withLock {
+                    operation()
+                }
             }
             applyResult(result)
         }
