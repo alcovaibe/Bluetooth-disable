@@ -4,7 +4,9 @@ import java.time.DateTimeException
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.Locale
-import org.junit.Assert.*
+import java.util.TimeZone
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class CalendarDatesTest {
@@ -37,10 +39,27 @@ class CalendarDatesTest {
         assertEquals(date, LocalDate.parse(date.toString()))
     }
 
-    @Test fun datePickerUtcConversionRoundTrips() {
-        for (date in listOf(LocalDate.of(1, 1, 1), LocalDate.of(2012, 12, 12),
-            LocalDate.of(2024, 2, 29), LocalDate.of(9999, 12, 31))) {
+    @Test fun datePickerUtcConversionRoundTripsAcrossFullRange() {
+        for (date in listOf(
+            LocalDate.of(1, 1, 1),
+            LocalDate.of(2012, 12, 12),
+            LocalDate.of(2024, 2, 29),
+            LocalDate.of(9999, 12, 31),
+        )) {
             assertEquals(date, CalendarDates.fromPickerMillis(CalendarDates.toPickerMillis(date)))
+        }
+    }
+
+    @Test fun pickerConversionDoesNotShiftWhenDeviceTimezoneChanges() {
+        val original = TimeZone.getDefault()
+        val date = LocalDate.of(2024, 2, 29)
+        try {
+            for (zone in listOf("Pacific/Kiritimati", "UTC", "America/Adak")) {
+                TimeZone.setDefault(TimeZone.getTimeZone(zone))
+                assertEquals(date, CalendarDates.fromPickerMillis(CalendarDates.toPickerMillis(date)))
+            }
+        } finally {
+            TimeZone.setDefault(original)
         }
     }
 
