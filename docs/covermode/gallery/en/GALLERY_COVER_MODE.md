@@ -1,44 +1,91 @@
 # Gallery Cover Mode
 
-## Scope
+## Purpose
 
-Gallery Cover Mode is a local disguise that presents an offline photo gallery while the real application remains behind a hidden access gesture. Gallery data is intentionally device-local and is not exported, shared, backed up, or transferred to another device.
+Gallery Cover Mode disguises Bluetooth Disable as a local private gallery. After activation, the launcher opens the Gallery interface while the main Bluetooth Disable UI is available through the configured secret image and tap sequence or through emergency recovery.
 
-## Storage and privacy
+## Features
 
-- Photos are selected through Android Photo Picker. The app requests no broad photo-library permission.
-- Selected images are decoded and re-encoded before storage. Source EXIF/XMP/IPTC/MakerNote/GPS/identifying metadata is not copied into the sanitized local image.
-- The encrypted Gallery index may retain dimensions, color-space name, capture time, and a restricted set of non-identifying shooting parameters.
-- Images, thumbnails, index, and albums are encrypted with AES-256-GCM using a non-exportable Android Keystore key and purpose-specific AAD.
-- Gallery files live in `noBackupFilesDir`. Android backup and device-transfer rules exclude all app data, and `DeviceTransferGuard` removes copied private data when its device-local Keystore marker cannot be validated.
+The current implementation supports:
 
-## Crash consistency
+- image import through the Android system Photo Picker;
+- copying selected images into application-private storage;
+- date-based photo grouping;
+- full-screen viewing;
+- swipe navigation;
+- zooming;
+- favorites;
+- an automatic Favorites album;
+- user-created albums;
+- assigning photos to albums;
+- deletion;
+- image rotation and cropping;
+- photo information display;
+- light and dark themes.
 
-Gallery metadata is committed with `AtomicFile`. Image edits use copy-on-write revisions: new encrypted image and thumbnail files are written before the index points to them, and the previous revision is deleted only after the new index commit succeeds. Import failures remove files created by the failed transaction. Unreferenced encrypted image/thumbnail files are reconciled after a successfully decoded committed index is loaded.
+After import, the application's local copy no longer depends on the original media item.
 
-## Hidden access
+## Hidden-access setup
 
-- A secret local image is selected during setup.
-- The access sequence is exactly three different zones chosen from five zones: four corners plus center.
-- Zone order matters, producing 60 valid sequences.
-- The sequence is entered twice during setup.
-- The plaintext sequence is not persisted. `GalleryAccessManager` stores the secret local image ID and an HMAC-SHA256 verifier backed by Android Keystore.
-- Verification uses constant-time comparison.
-- The sequence detector resets on timeout, repeated zone, image change, taps outside a secret zone, meaningful drag/swipe, multi-touch/zoom, viewer navigation, recovery interaction, and viewer toolbar actions.
-- A pending asynchronous verification is invalidated when the sequence is reset or the viewer state changes.
+1. Select Gallery Cover Mode and confirm the transition.
+2. Import photos through the Photo Picker when needed.
+3. Select one image as the secret image.
+4. Configure a sequence of **three distinct tap zones**.
+5. Repeat the sequence for confirmation.
+6. When both sequences match, activate the cover.
 
-### Security limitation
+Five tap zones are available:
 
-The three-distinct-zone design has only 60 combinations and currently has no persistent rate limit or lockout. The HMAC protects the stored verifier but does not increase the entropy of the user gesture. This is an intentional compatibility constraint of the current Gallery v1 interaction and should not be treated as a high-entropy authentication factor. Strengthening the gesture space or adding an attempt policy is a future product/security decision because either change affects the established access semantics.
+- top left;
+- top right;
+- center;
+- bottom left;
+- bottom right.
 
-## Recovery
+A zone cannot be repeated within the same three-tap sequence. This produces 60 valid sequences. During normal access attempts, no more than 5 seconds may elapse between taps.
 
-Gallery uses the shared Cover Mode emergency recovery flow: a continuous three-second hold on the Gallery title, Android system authentication, and a separate explicit reset confirmation. Recovery returns to DEFAULT launcher state and removes the temporary Gallery access rule/key while preserving the encrypted local Gallery data.
+## Opening Bluetooth Disable
 
-## Lifecycle and Cover Mode switching
+Open the configured secret image and perform the saved three-zone sequence. Verification is bound to both the image identifier and the sequence.
 
-Switching away from Gallery clears the temporary hidden-access verifier/key but preserves Gallery photos, albums, and favorites. Re-entering Gallery requires a new secret image/sequence setup. Deleting the current secret image invalidates only the access rule; Gallery data and the active disguise remain available for emergency recovery.
+The plaintext sequence is not persisted. `GalleryAccessManager` stores an HMAC-SHA256 verifier created with a non-exportable Android Keystore key.
 
-## Known validation boundaries
+## Emergency recovery
 
-Automated tests cover storage, sanitization, access persistence, Cover Mode transitions, backup-permission boundaries, atomic-index recovery, copy-on-write edits, and orphan reconciliation. Physical-device behavior, OEM Photo Picker implementations, very large-image memory pressure, and visual behavior at extreme font/display scaling remain manual validation areas.
+On the main Gallery Cover Mode screen, hold the **Gallery** title for **3 seconds**. Android system authentication is requested. After successful authentication, the user must confirm the cover reset.
+
+When the Quick Settings tile is installed, Bluetooth Disable can also be opened from the tile.
+
+Cancelling authentication or declining the reset leaves the active cover unchanged.
+
+## Storage and encryption
+
+Imported images, thumbnails and related metadata are stored locally. Gallery storage uses AES-256-GCM with Android Keystore keys. The hidden-access rule uses a separate HMAC-SHA256 key.
+
+The application does not request `INTERNET` permission and does not upload gallery data.
+
+Application data is excluded from Android backup and device-to-device transfer. `DeviceTransferGuard` additionally resets migrated state when app-private files are copied to another device without the corresponding non-exportable Keystore identity.
+
+## Main components
+
+- `GalleryCoverActivity` — cover container and recovery flow;
+- `GalleryCoverSetupActivity` — secret image and sequence setup;
+- `GalleryViewModel` — UI state;
+- `GalleryRepository` — import, persistence and image/album operations;
+- `GalleryCipher` — gallery-data encryption;
+- `GalleryAccessManager` — hidden-access HMAC verification;
+- `GalleryAccessPolicy` and `GallerySequenceDetector` — sequence rules and timeout behavior.
+
+## Verification
+
+Gallery Cover Mode has unit and instrumentation coverage for:
+
+- all 60 valid three-zone sequences;
+- repeated-zone rejection;
+- sequence timeout reset;
+- encrypted import and persistence;
+- state restoration across recreation;
+- cover/main navigation;
+- recovery behavior.
+
+Instrumentation tests run in the shared CI compatibility matrix for Android API 26–36.

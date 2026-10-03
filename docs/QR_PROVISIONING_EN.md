@@ -1,65 +1,89 @@
-# QR provisioning
+# Device Owner QR provisioning
 
-**Language:** [Russian](QR_PROVISIONING.md) | [English](QR_PROVISIONING_EN.md)
+## Overview
 
-Bluetooth Disable is intended to be provisioned as a **fully managed Device Owner** after a factory reset.
+Bluetooth Disable is distributed as a Device Policy Controller. Android Setup Wizard QR provisioning is used for the fully managed Device Owner flow.
 
-Android recommends QR enrollment for fully managed and dedicated devices. The QR payload must point to the signed APK and include a checksum so Android Setup Wizard can verify the downloaded package.
+All new releases use tags strictly in this format:
 
-## Android 12+
-
-The application implements the two admin-integrated provisioning entry points required on Android 12 and newer:
-
-- `android.app.action.GET_PROVISIONING_MODE`;
-- `android.app.action.ADMIN_POLICY_COMPLIANCE`.
-
-The first selects `PROVISIONING_MODE_FULLY_MANAGED_DEVICE`. The second completes provisioning only after Android confirms that this package is the Device Owner.
-
-## Release APK checksum
-
-After building the exact APK that will be hosted, calculate the URL-safe Base64 SHA-256 package checksum:
-
-```bash
-openssl dgst -sha256 -binary app-release.apk \
-  | openssl base64 -A \
-  | tr '+/' '-_' \
-  | tr -d '='
+```text
+v<version>
 ```
 
-The checksum is tied to the exact APK bytes. Rebuilding or modifying the APK requires generating a new checksum and QR payload.
+For example:
 
-## QR payload template
+```text
+v1.0.20
+```
 
-Replace both placeholders before generating the QR code:
+The tag must exactly match `versionName` in `app/build.gradle.kts`. The release workflow rejects mismatched tags.
+
+## Automatic QR generation
+
+`.github/workflows/release.yml` performs the following sequence:
+
+1. build the signed release APK;
+2. publish the GitHub Release;
+3. calculate SHA-256 from that exact signed APK;
+4. encode the digest as URL-safe Base64 without padding;
+5. build the provisioning JSON;
+6. generate the QR image;
+7. attach both JSON and PNG files to the GitHub Release;
+8. update the stable files on `main`:
+   - `docs/bluetooth-disable-device-owner-qr.png`;
+   - `docs/bluetooth-disable-device-owner-provisioning.json`.
+
+This keeps the QR checksum bound to the exact APK bytes published in the release.
+
+## Release asset naming
+
+The signed APK is named:
+
+```text
+BluetoothDisable-v<version>.apk
+```
+
+For `v1.0.20`:
+
+```text
+BluetoothDisable-v1.0.20.apk
+```
+
+The provisioning download URL is derived from the current GitHub tag and asset name.
+
+## Provisioning payload
+
+The workflow generates JSON with this structure:
 
 ```json
 {
   "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://<PUBLIC_HOST>/bluetooth-disable/app-release.apk",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://github.com/alcovaibe/Bluetooth-disabler/releases/download/v<version>/BluetoothDisable-v<version>.apk",
   "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": "<URL_SAFE_BASE64_SHA256>"
 }
 ```
 
-The APK URL must be reachable from Android Setup Wizard over HTTPS.
+The checksum must never be reused for a rebuilt or modified APK. Any byte-level APK change produces a new digest and therefore requires a new QR payload.
 
-## Enrollment flow
+## Release files
 
-1. Build and sign the release APK.
-2. Publish the **same APK bytes** at the public HTTPS URL from the payload.
-3. Calculate the package checksum.
-4. Generate the QR code from the completed JSON payload.
-5. Factory-reset the test device.
-6. Start the Android QR provisioning flow from Setup Wizard.
-7. Connect the device to the internet when requested.
-8. Scan the QR code.
-9. Setup Wizard downloads and verifies the APK.
-10. Android installs the DPC and assigns it as Device Owner.
-11. The app returns fully managed mode during `GET_PROVISIONING_MODE`.
-12. Provisioning completes only when `ADMIN_POLICY_COMPLIANCE` confirms Device Owner status.
-13. Open the application and test Bluetooth protection.
+After a successful workflow, the GitHub Release contains:
 
-## Important
+- `BluetoothDisable-v<version>.apk`;
+- `bluetooth-disable-device-owner-qr.png`;
+- `bluetooth-disable-device-owner-provisioning.json`.
 
-Android 13+ expects internet connectivity during company-owned provisioning by default. We intentionally do not enable offline provisioning because the DPC itself is downloaded from a public HTTPS endpoint.
+The stable `docs/bluetooth-disable-device-owner-qr.png` file is updated automatically and is intended for README installation instructions and provisioning of the latest published version.
 
-Do not publish a QR code until the release signing key and stable APK URL are finalized. Changing the APK changes the package checksum.
+The legacy `docs/bluetooth-disable-1.0.6-device-owner-qr.png` file remains only as a historical artifact of the old release flow and should not be used for new installations after the next `v*` release is published.
+
+## Recommended release check
+
+Before creating a production tag, verify that:
+
+- `versionName` and `versionCode` are correct;
+- PR CI is green;
+- `main` is green in Android Full Compatibility;
+- release secrets contain the current signing keystore and passwords.
+
+After publication, perform one physical-device check of the newly generated QR after factory reset. Setup Wizard should download the APK, validate the checksum, and provision Bluetooth Disable as Device Owner.

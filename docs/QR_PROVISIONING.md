@@ -1,65 +1,89 @@
-# QR-развертывание
+# Device Owner QR provisioning
 
-**Язык:** [Русский](QR_PROVISIONING.md) | [Английский](QR_PROVISIONING_EN.md)
+## Общая схема
 
-Bluetooth Disable предназначен для развертывания в качестве **полностью управляемого владельца устройства (Device Owner)** после сброса к заводским настройкам.
+Bluetooth Disable распространяется как Device Policy Controller. Для полностью автоматизированного provisioning используется QR-код Android Setup Wizard.
 
-Android рекомендует регистрацию по QR-коду для полностью управляемых и выделенных устройств. QR-нагрузка должна указывать на подписанный APK и содержать контрольную сумму, чтобы мастер первоначальной настройки Android мог проверить загруженный пакет.
+Начиная с текущего release pipeline все новые релизы используют теги строго в формате:
 
-## Android 12+
-
-Приложение реализует две точки входа интегрированного развертывания администратора, необходимые в Android 12 и новее:
-
-- `android.app.action.GET_PROVISIONING_MODE`;
-- `android.app.action.ADMIN_POLICY_COMPLIANCE`.
-
-Первая выбирает `PROVISIONING_MODE_FULLY_MANAGED_DEVICE`. Вторая завершает развертывание только после того, как Android подтверждает, что этот пакет является владельцем устройства.
-
-## Контрольная сумма релизного APK
-
-После сборки точного APK, который будет размещён на сервере, вычислите контрольную сумму пакета SHA-256 в Base64, безопасной для URL:
-
-```bash
-openssl dgst -sha256 -binary app-release.apk \
-  | openssl base64 -A \
-  | tr '+/' '-_' \
-  | tr -d '='
+```text
+v<version>
 ```
 
-Контрольная сумма привязана к точным байтам APK. Повторная сборка или изменение APK требует создания новой контрольной суммы и новой QR-нагрузки.
+Например:
 
-## Шаблон QR-нагрузки
+```text
+v1.0.20
+```
 
-Перед созданием QR-кода замените оба заполнителя:
+Тег должен точно соответствовать `versionName` из `app/build.gradle.kts`. Workflow отклоняет релиз, если тег и `versionName` расходятся.
+
+## Автоматическая генерация QR
+
+Workflow `.github/workflows/release.yml` выполняет последовательность:
+
+1. собирает подписанный release APK;
+2. публикует GitHub Release;
+3. вычисляет SHA-256 именно опубликованного APK;
+4. преобразует digest в URL-safe Base64 без padding;
+5. формирует provisioning JSON;
+6. генерирует QR-код;
+7. прикладывает JSON и PNG к GitHub Release;
+8. обновляет стабильные файлы в ветке `main`:
+   - `docs/bluetooth-disable-device-owner-qr.png`;
+   - `docs/bluetooth-disable-device-owner-provisioning.json`.
+
+Таким образом QR всегда привязан к точным байтам подписанного APK конкретного релиза.
+
+## Формат release asset
+
+Release APK получает имя:
+
+```text
+BluetoothDisable-v<version>.apk
+```
+
+Для `v1.0.20`:
+
+```text
+BluetoothDisable-v1.0.20.apk
+```
+
+Provisioning download URL строится из текущего GitHub tag и имени asset.
+
+## Provisioning payload
+
+Автоматически формируется JSON следующей структуры:
 
 ```json
 {
   "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.pulse.bluetoothdisable/.admin.AppDeviceAdminReceiver",
-  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://<PUBLIC_HOST>/bluetooth-disable/app-release.apk",
+  "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": "https://github.com/alcovaibe/Bluetooth-disabler/releases/download/v<version>/BluetoothDisable-v<version>.apk",
   "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_CHECKSUM": "<URL_SAFE_BASE64_SHA256>"
 }
 ```
 
-APK должен быть доступен мастеру первоначальной настройки Android по HTTPS.
+Checksum нельзя переносить между сборками: любое изменение APK меняет digest и требует нового QR.
 
-## Процесс регистрации
+## Файлы релиза
 
-1. Соберите и подпишите релизный APK.
-2. Разместите **те же самые байты APK** по публичному HTTPS-адресу из QR-нагрузки.
-3. Вычислите контрольную сумму пакета.
-4. Создайте QR-код из заполненной JSON-нагрузки.
-5. Сбросьте тестовое устройство к заводским настройкам.
-6. Запустите процесс QR-развертывания Android из мастера первоначальной настройки.
-7. Подключите устройство к интернету, когда система запросит подключение.
-8. Отсканируйте QR-код.
-9. Мастер первоначальной настройки загрузит и проверит APK.
-10. Android установит DPC и назначит его владельцем устройства.
-11. Приложение вернёт режим полностью управляемого устройства во время `GET_PROVISIONING_MODE`.
-12. Развертывание завершится только после того, как `ADMIN_POLICY_COMPLIANCE` подтвердит статус владельца устройства.
-13. Откройте приложение и проверьте работу защиты Bluetooth.
+После успешного workflow GitHub Release содержит:
 
-## Важно
+- `BluetoothDisable-v<version>.apk`;
+- `bluetooth-disable-device-owner-qr.png`;
+- `bluetooth-disable-device-owner-provisioning.json`.
 
-Android 13+ по умолчанию ожидает подключение к интернету во время развертывания устройства, принадлежащего организации. Мы намеренно не включаем автономное развертывание, поскольку сам DPC загружается с публичного HTTPS-адреса.
+Стабильный QR в `docs/bluetooth-disable-device-owner-qr.png` обновляется автоматически и предназначен для README и обычного provisioning последней опубликованной версии.
 
-Не публикуйте QR-код, пока не будут окончательно определены релизный ключ подписи и стабильный адрес APK. Изменение APK изменяет контрольную сумму пакета.
+Старый файл `docs/bluetooth-disable-1.0.6-device-owner-qr.png` оставлен только как исторический артефакт предыдущего release flow и не должен использоваться для новых установок после публикации нового `v*` релиза.
+
+## Ручная проверка перед релизом
+
+Перед созданием production tag рекомендуется убедиться, что:
+
+- `versionName` и `versionCode` обновлены;
+- CI на PR зелёный;
+- `main` зелёный на Android Full Compatibility;
+- release secrets содержат актуальный signing keystore и пароли.
+
+После публикации релиза рекомендуется один раз проверить новый QR на физическом устройстве после factory reset: Setup Wizard должен скачать APK, проверить checksum и назначить Bluetooth Disable Device Owner.

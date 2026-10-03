@@ -1,93 +1,81 @@
-# Calendar Cover Mode — 1.0.19 (versionCode 21)
+# Calendar Cover Mode
 
-Calendar Cover Mode disguises Bluetooth Disable as a local calendar. The Calendar data model,
-secret access verifier and recovery flow remain local to the device and do not require calendar,
-account, Internet or cloud permissions.
+## Purpose
 
-## Hidden access
+Calendar Cover Mode disguises Bluetooth Disable as a local calendar with date-bound notes. After activation, the launcher opens the Calendar interface while the main Bluetooth Disable UI is accessible through the configured date-and-note-text rule or emergency recovery.
 
-1. Main screen → Change icon → Calendar → Continue.
-2. Choose an access date and secret note text.
-3. Confirm setup. Setup stores the access rule but does not create the matching note.
-4. In Calendar Cover Mode, manually create a note on the configured date with the configured text.
-5. Tapping an exact matching note opens the real app immediately.
+## Features
 
-The access rule remains date-bound and case-sensitive. Leading/trailing whitespace is normalized.
-The verifier is HMAC-SHA256 with a non-exportable Android Keystore key; the configured secret text
-is not stored as plaintext. Access text remains limited to 3–100 UTF-16 code units so every valid
-secret can also be represented by a Calendar note.
+The current implementation supports:
 
-Changing the text of the matching note makes it an ordinary note until it once again exactly matches
-the configured date/text rule. Setup never creates an access note automatically, and a successful
-unlock never deletes the matching note.
+- month calendar view;
+- navigation between months;
+- date selection;
+- quick return to today's date;
+- creating, editing and deleting notes for specific dates;
+- local note storage;
+- light and dark themes.
 
-## Calendar notes
+## Hidden-access setup
 
-- Notes are plain text only, with internal line breaks allowed.
-- Leading/trailing whitespace and line breaks are trimmed on save.
-- Empty notes are rejected.
-- Maximum saved note length: 120 UTF-16 code units (`String.length`).
-- Maximum notes per date: 25.
-- Exact duplicates on the same date are rejected after edge-whitespace normalization; case still matters.
-- Existing note dates cannot be changed by editing.
-- Notes are ordered by most recent `updatedAt`; a newly saved note is therefore shown first, and editing
-  moves that note to the top.
-- Tapping an ordinary non-matching note opens a read-only viewer. Edit/Delete remain separate card actions.
-- Delete always requires confirmation.
+1. Select Calendar Cover Mode and confirm the transition.
+2. Choose the secret date in the setup screen.
+3. Enter a secret text value between 3 and 100 characters.
+4. Confirm the setup to persist the access rule and activate the cover.
 
-`LocalCalendarNotesRepository` stores notes in an `AtomicFile`. The JSON payload is encrypted with
-AES-256-GCM using a non-exportable Android Keystore key. Corrupt or undecryptable data is surfaced as
-a storage error and is never silently replaced.
+The setup does not automatically create the secret calendar note. The user later creates a normal note on the configured date.
 
-## Persistent drafts
+The configured date is bound into the signed payload together with the normalized text. The secret is not stored as a separate plaintext value. Verification uses HMAC-SHA256 with a non-exportable Android Keystore key.
 
-Unsaved editor text is persisted as an encrypted draft and survives activity/app restarts. New-note
-drafts are bound to their original date; edit drafts are bound to the note ID. Drafts are removed after
-a successful save, or when the user clears the text. Calendar drafts use the same device-local encrypted
-storage boundary as Calendar notes and are cleared with Calendar local data.
+## Opening Bluetooth Disable
 
-## Calendar navigation and dates
+To open the main interface:
 
-- Every fresh Calendar Cover launch starts on today.
-- Returning through Hide starts on today.
-- Today selects the current local date and month.
-- Previous/Next month always selects day 1 of the destination month.
-- Supported year range: 1–9999.
-- Material Date Picker conversion is performed through UTC calendar-date milliseconds, so changing the
-  device timezone must not shift a selected date by ±1 day.
-- RU/EN localization changes UI/date rendering only; user note text is never translated or rewritten.
+1. navigate to the configured date;
+2. create a note containing the configured text;
+3. open that note.
+
+Only leading and trailing whitespace is removed before verification. Letter case and all internal characters remain significant, so the rest of the text must match exactly.
+
+The **HIDE** action returns to Calendar Cover Mode, moves the calendar back to today's date, and removes the main Bluetooth Disable screen from the navigation back stack.
 
 ## Emergency recovery
 
-The shared hidden recovery gesture remains a passive three-second hold. Calendar exposes it on both the
-Calendar title and Today action. A successful hold starts Android system authentication, then a separate
-reset confirmation. There is no recovery haptic feedback or visible hold progress.
+On the calendar screen, hold the calendar title or the control that returns to today for **3 seconds**. Android system authentication is requested. After successful authentication, the user must confirm the cover reset.
 
-Confirmed Calendar recovery disables the disguise and restores the default launcher while preserving
-all Calendar notes/drafts. Authentication cancellation/failure, confirmation cancellation, lifecycle
-changes and repeated attempts must not reset the mode accidentally.
+When the Quick Settings tile is installed, Bluetooth Disable can also be opened from that tile.
 
-## Backup, transfer and reinstall
+Cancelling system authentication or declining the confirmation leaves the active cover unchanged.
 
-All application-private files/preferences remain excluded from Android cloud backup and device-to-device
-transfer. `DeviceTransferGuard` is the additional OEM-migration defense. Calendar notes, drafts and secret
-configuration are not intended to move to another device. Uninstall/reinstall starts Calendar data from
-an empty state.
+## Data storage
 
-## Audit validation
+Calendar notes are stored locally in encrypted form. `CalendarNotesCipher` uses AES-GCM with an Android Keystore key. The hidden-access rule uses a separate HMAC-SHA256 key.
 
-The audit regression suite covers:
+Application data is excluded from Android backup and device-to-device transfer. `DeviceTransferGuard` adds a separate non-exportable Keystore identity and returns migrated app-private state to clean-install state when copied data is detected on another device.
 
-- access date/text exactness, normalization, case sensitivity and Keystore-backed verification;
-- 120-unit text limit, blank/duplicate rejection and the 25-notes-per-date limit;
-- creation/update ordering and immutable note dates;
-- encrypted note and draft persistence plus key-loss/corruption behavior;
-- read-only ordinary-note taps and unchanged explicit Edit/Delete actions;
-- draft persistence across Calendar activity restarts;
-- first-day month navigation, leap/century years, 1–9999 boundaries and timezone-safe picker conversion;
-- matching note → Main → Hide → fresh today state;
-- shared three-second authenticated emergency recovery and preservation of Calendar user data.
+## Main components
 
-CI is expected to run unit tests, lint, debug Android tests and release assembly, with instrumented coverage
-across API 26–36 where the GitHub emulator environment supports that level. Physical-device recovery and
-OEM-specific UI behavior remain manual release checks.
+- `CalendarCoverActivity` — cover container and recovery flow;
+- `CalendarCoverSetupActivity` — secret date and text setup;
+- `CalendarViewModel` — calendar and note state;
+- `LocalCalendarNotesRepository` — local persistence;
+- `CalendarNotesCipher` — encrypted note storage;
+- `CalendarAccessManager` — HMAC verification for date and text;
+- `CalendarAccessPolicy` — secret normalization and limits;
+- `CalendarDraftStore` — draft persistence during recreation.
+
+## Verification
+
+Calendar Cover Mode is covered by unit and instrumentation tests for:
+
+- access-text policy;
+- calendar date behavior;
+- note CRUD and encrypted persistence;
+- draft restoration after activity recreation;
+- setup and activation;
+- cover/main navigation;
+- recovery and authentication cancellation;
+- the 3-second recovery gesture;
+- compatibility behavior on slower legacy APIs.
+
+Instrumentation tests run in the shared CI compatibility matrix for Android API 26–36.
