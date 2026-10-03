@@ -608,7 +608,10 @@ private fun GalleryViewer(
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
     val bitmap by galleryBitmap(viewModel, image.id, thumbnail = false)
 
-    BackHandler(onBack = onBack)
+    BackHandler {
+        viewModel.resetSequence()
+        onBack()
+    }
 
     fun move(delta: Int) {
         val index = images.indexOfFirst { it.id == image.id }
@@ -620,10 +623,16 @@ private fun GalleryViewer(
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.safeDrawingPadding()) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 8.dp)
+                    .galleryInterruptSequenceOnDown(viewModel::resetSequence),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                IconButton(onClick = onBack) {
+                IconButton(onClick = {
+                    viewModel.resetSequence()
+                    onBack()
+                }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = stringResource(R.string.gallery_back),
@@ -634,7 +643,10 @@ private fun GalleryViewer(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier
                         .weight(1f)
-                        .coverRecoveryHold(recoveryEnabled, onRecoveryHold),
+                        .coverRecoveryHold(recoveryEnabled) {
+                            viewModel.resetSequence()
+                            onRecoveryHold()
+                        },
                 )
                 Text("${images.indexOfFirst { it.id == image.id } + 1}/${images.size}")
             }
@@ -649,15 +661,12 @@ private fun GalleryViewer(
                         imageId = image.id,
                         scale = scale,
                         translation = translation,
+                        onInterrupted = viewModel::resetSequence,
                         onTransform = { nextScale, nextTranslation ->
                             scale = nextScale
                             translation = nextTranslation
-                            viewModel.resetSequence()
                         },
-                        onSwipe = { direction ->
-                            viewModel.resetSequence()
-                            move(direction)
-                        },
+                        onSwipe = { direction -> move(direction) },
                     )
                     .galleryTapGestures(
                         imageId = image.id,
@@ -677,52 +686,72 @@ private fun GalleryViewer(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                bitmap?.let {
-                    Image(
-                        bitmap = it,
-                        contentDescription = null,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                scaleX = scale
-                                scaleY = scale
-                                translationX = translation.x
-                                translationY = translation.y
-                            },
-                    )
-                } ?: CircularProgressIndicator()
+                when {
+                    bitmap != null -> {
+                        Image(
+                            bitmap = bitmap!!,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    scaleX = scale
+                                    scaleY = scale
+                                    translationX = translation.x
+                                    translationY = translation.y
+                                },
+                        )
+                    }
+                    viewModel.uiState.storageError -> {
+                        Text(
+                            stringResource(R.string.gallery_storage_error),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    else -> CircularProgressIndicator()
+                }
             }
 
             Surface(tonalElevation = 4.dp) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp, vertical = 6.dp)
+                        .galleryInterruptSequenceOnDown(viewModel::resetSequence),
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     GalleryToolbarAction(
                         icon = if (image.favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
                         labelRes = R.string.gallery_favorite,
-                        tint = if (image.favorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        tint = if (image.favorite) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
                     ) {
+                        viewModel.resetSequence()
                         viewModel.toggleFavorite(image)
                     }
                     GalleryToolbarAction(
                         icon = Icons.Rounded.PhotoAlbum,
                         labelRes = R.string.gallery_album,
                     ) {
+                        viewModel.resetSequence()
                         showAlbumPicker = true
                     }
                     GalleryToolbarAction(
                         icon = Icons.Rounded.Edit,
                         labelRes = R.string.gallery_edit,
                     ) {
+                        viewModel.resetSequence()
                         showEdit = true
                     }
                     GalleryToolbarAction(
                         icon = Icons.Rounded.Info,
                         labelRes = R.string.gallery_info,
                     ) {
+                        viewModel.resetSequence()
                         showInfo = true
                     }
                     GalleryToolbarAction(
@@ -730,6 +759,7 @@ private fun GalleryViewer(
                         labelRes = R.string.gallery_delete,
                         tint = MaterialTheme.colorScheme.error,
                     ) {
+                        viewModel.resetSequence()
                         showDelete = true
                     }
                 }
@@ -988,10 +1018,24 @@ private fun galleryBitmap(
     }
 }
 
+private fun Modifier.galleryInterruptSequenceOnDown(
+    onInterrupted: () -> Unit,
+): Modifier = pointerInput(onInterrupted) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        onInterrupted()
+        while (true) {
+            val event = awaitPointerEvent()
+            if (event.changes.none { it.pressed }) break
+        }
+    }
+}
+
 private fun Modifier.galleryViewerGestures(
     imageId: String,
     scale: Float,
     translation: Offset,
+    onInterrupted: () -> Unit,
     onTransform: (Float, Offset) -> Unit,
     onSwipe: (Int) -> Unit,
 ): Modifier = pointerInput(imageId, scale, translation) {
@@ -1005,6 +1049,14 @@ private fun Modifier.galleryViewerGestures(
         var horizontalDrag = 0f
         var verticalDrag = 0f
         var multiTouch = false
+        var interrupted = false
+
+        fun interruptOnce() {
+            if (!interrupted) {
+                interrupted = true
+                onInterrupted()
+            }
+        }
 
         while (true) {
             val event = awaitPointerEvent()
@@ -1013,6 +1065,7 @@ private fun Modifier.galleryViewerGestures(
 
             if (pressed.size >= 2) {
                 multiTouch = true
+                interruptOnce()
                 val first = pressed[0]
                 val second = pressed[1]
                 val centroid = Offset(
@@ -1046,12 +1099,16 @@ private fun Modifier.galleryViewerGestures(
                 val delta = change.positionChange()
 
                 if (localScale > 1.01f) {
+                    if (delta != Offset.Zero) interruptOnce()
                     localTranslation += delta
                     onTransform(localScale, localTranslation)
                     change.consume()
                 } else if (!multiTouch) {
                     horizontalDrag += delta.x
                     verticalDrag += delta.y
+                    if (Offset(horizontalDrag, verticalDrag).getDistance() > viewConfiguration.touchSlop) {
+                        interruptOnce()
+                    }
                     if (abs(delta.x) > abs(delta.y)) change.consume()
                 }
             }
@@ -1063,6 +1120,7 @@ private fun Modifier.galleryViewerGestures(
             abs(horizontalDrag) > 120f &&
             abs(horizontalDrag) > abs(verticalDrag) * 1.2f
         ) {
+            interruptOnce()
             onSwipe(if (horizontalDrag < 0f) 1 else -1)
         }
     }

@@ -6,10 +6,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
+import android.util.AtomicFile
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileNotFoundException
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -24,84 +26,99 @@ class GalleryRepository(context: Context) {
     private val thumbsDir = File(root, "thumbs")
     private val indexFile = File(root, "index.enc")
     private val albumsFile = File(root, "albums.enc")
-    private val lock = Any()
 
     init {
         check(imagesDir.mkdirs() || imagesDir.isDirectory) { "Unable to create gallery image directory" }
         check(thumbsDir.mkdirs() || thumbsDir.isDirectory) { "Unable to create gallery thumbnail directory" }
     }
 
-    fun images(): List<GalleryImage> = synchronized(lock) {
-        loadIndex().sortedByDescending { it.capturedAt ?: it.importedAt }
+    fun images(): List<GalleryImage> = synchronized(STORAGE_LOCK) {
+        val items = loadIndex()
+        reconcileOrphans(items)
+        items.sortedByDescending { it.capturedAt ?: it.importedAt }
     }
 
-    fun albums(): List<GalleryAlbum> = synchronized(lock) {
+    fun albums(): List<GalleryAlbum> = synchronized(STORAGE_LOCK) {
         loadAlbums().sortedBy { it.name.lowercase(Locale.ROOT) }
     }
 
-    fun image(id: String): GalleryImage? = synchronized(lock) {
+    fun image(id: String): GalleryImage? = synchronized(STORAGE_LOCK) {
         loadIndex().firstOrNull { it.id == id }
     }
 
-    fun imageBytes(id: String): ByteArray = synchronized(lock) {
+    fun imageBytes(id: String): ByteArray = synchronized(STORAGE_LOCK) {
         val item = loadIndex().firstOrNull { it.id == id } ?: error("Unknown gallery image")
         GalleryCipher.decrypt(File(imagesDir, item.encryptedFileName).readBytes(), "image:${item.id}")
     }
 
-    fun thumbnailBytes(id: String): ByteArray = synchronized(lock) {
+    fun thumbnailBytes(id: String): ByteArray = synchronized(STORAGE_LOCK) {
         val item = loadIndex().firstOrNull { it.id == id } ?: error("Unknown gallery image")
         GalleryCipher.decrypt(File(thumbsDir, item.thumbnailFileName).readBytes(), "thumb:${item.id}")
     }
 
-    fun importUris(resolver: ContentResolver, uris: List<Uri>): List<GalleryImage> = synchronized(lock) {
-        val current = loadIndex().toMutableList()
-        val added = mutableListOf<GalleryImage>()
-        for (uri in uris) {
-            val source = readBounded(resolver, uri)
-            val prepared = prepareImage(source)
-            val duplicate = current.firstOrNull { it.sha256 == prepared.sha256 }
-            if (duplicate != null) {
-                prepared.bitmap.recycle()
-                continue
+    fun importUris(resolver: ContentResolver, uris: List<Uri>): List<GalleryImage> =
+        synchronized(STORAGE_LOCK) {
+            val current = loadIndex().toMutableList()
+            val added = mutableListOf<GalleryImage>()
+            val newFiles = mutableListOf<File>()
+
+            try {
+                for (uri in uris) {
+                    val source = readBounded(resolver, uri)
+                    val prepared = prepareImage(source)
+                    try {
+                        val duplicate = current.firstOrNull { it.sha256 == prepared.sha256 }
+                        if (duplicate != null) continue
+
+                        val id = UUID.randomUUID().toString()
+                        val imageFileName = "$id.bin"
+                        val thumbFileName = "$id.bin"
+                        val imageFile = File(imagesDir, imageFileName)
+                        val thumbFile = File(thumbsDir, thumbFileName)
+
+                        imageFile.writeBytes(
+                            GalleryCipher.encrypt(prepared.encoded, "image:$id"),
+                        )
+                        newFiles += imageFile
+                        thumbFile.writeBytes(
+                            GalleryCipher.encrypt(makeThumbnail(prepared.bitmap), "thumb:$id"),
+                        )
+                        newFiles += thumbFile
+
+                        val now = System.currentTimeMillis()
+                        val item = GalleryImage(
+                            id = id,
+                            encryptedFileName = imageFileName,
+                            thumbnailFileName = thumbFileName,
+                            width = prepared.bitmap.width,
+                            height = prepared.bitmap.height,
+                            orientation = 1,
+                            colorSpace = prepared.bitmap.colorSpace?.name,
+                            importedAt = now,
+                            updatedAt = now,
+                            favorite = false,
+                            sha256 = prepared.sha256,
+                            mimeType = prepared.mimeType,
+                            source = SOURCE_USER_PICKER,
+                            shooting = prepared.shooting,
+                            capturedAt = prepared.capturedAt,
+                        )
+                        current += item
+                        added += item
+                    } finally {
+                        prepared.bitmap.recycle()
+                    }
+                }
+
+                if (added.isNotEmpty()) saveIndex(current)
+                added
+            } catch (error: Throwable) {
+                newFiles.forEach { it.delete() }
+                throw error
             }
-
-            val id = UUID.randomUUID().toString()
-            val imageFileName = "$id.bin"
-            val thumbFileName = "$id.bin"
-            File(imagesDir, imageFileName).writeBytes(
-                GalleryCipher.encrypt(prepared.encoded, "image:$id"),
-            )
-            File(thumbsDir, thumbFileName).writeBytes(
-                GalleryCipher.encrypt(makeThumbnail(prepared.bitmap), "thumb:$id"),
-            )
-
-            val now = System.currentTimeMillis()
-            val item = GalleryImage(
-                id = id,
-                encryptedFileName = imageFileName,
-                thumbnailFileName = thumbFileName,
-                width = prepared.bitmap.width,
-                height = prepared.bitmap.height,
-                orientation = 1,
-                colorSpace = prepared.bitmap.colorSpace?.name,
-                importedAt = now,
-                updatedAt = now,
-                favorite = false,
-                sha256 = prepared.sha256,
-                mimeType = prepared.mimeType,
-                source = SOURCE_USER_PICKER,
-                shooting = prepared.shooting,
-                capturedAt = prepared.capturedAt,
-            )
-            prepared.bitmap.recycle()
-            current += item
-            added += item
         }
-        saveIndex(current)
-        added
-    }
 
-    fun toggleFavorite(id: String): GalleryImage? = synchronized(lock) {
+    fun toggleFavorite(id: String): GalleryImage? = synchronized(STORAGE_LOCK) {
         val current = loadIndex().toMutableList()
         val index = current.indexOfFirst { it.id == id }
         if (index < 0) return@synchronized null
@@ -114,7 +131,7 @@ class GalleryRepository(context: Context) {
         changed
     }
 
-    fun createAlbum(name: String): GalleryAlbum = synchronized(lock) {
+    fun createAlbum(name: String): GalleryAlbum = synchronized(STORAGE_LOCK) {
         val normalized = name.trim()
         require(normalized.isNotEmpty() && normalized.length <= MAX_ALBUM_NAME_LENGTH) {
             "Invalid album name"
@@ -134,7 +151,7 @@ class GalleryRepository(context: Context) {
         album
     }
 
-    fun addToAlbum(imageId: String, albumId: String): GalleryImage = synchronized(lock) {
+    fun addToAlbum(imageId: String, albumId: String): GalleryImage = synchronized(STORAGE_LOCK) {
         require(loadAlbums().any { it.id == albumId }) { "Unknown gallery album" }
         val current = loadIndex().toMutableList()
         val index = current.indexOfFirst { it.id == imageId }
@@ -151,7 +168,7 @@ class GalleryRepository(context: Context) {
         changed
     }
 
-    fun delete(id: String): Boolean = synchronized(lock) {
+    fun delete(id: String): Boolean = synchronized(STORAGE_LOCK) {
         val current = loadIndex().toMutableList()
         val item = current.firstOrNull { it.id == id } ?: return@synchronized false
         current.removeAll { it.id == id }
@@ -161,7 +178,7 @@ class GalleryRepository(context: Context) {
         true
     }
 
-    fun rotate(id: String, degrees: Int): GalleryImage = synchronized(lock) {
+    fun rotate(id: String, degrees: Int): GalleryImage = synchronized(STORAGE_LOCK) {
         require(degrees % 90 == 0)
         edit(id) { source ->
             val matrix = Matrix().apply { postRotate(degrees.toFloat()) }
@@ -169,7 +186,7 @@ class GalleryRepository(context: Context) {
         }
     }
 
-    fun cropCenterSquare(id: String): GalleryImage = synchronized(lock) {
+    fun cropCenterSquare(id: String): GalleryImage = synchronized(STORAGE_LOCK) {
         edit(id) { source ->
             val size = minOf(source.width, source.height)
             val left = (source.width - size) / 2
@@ -191,27 +208,46 @@ class GalleryRepository(context: Context) {
         val edited = transform(source)
         if (edited !== source) source.recycle()
 
-        val encoded = encodeSanitized(edited)
-        val thumb = makeThumbnail(edited)
-        File(imagesDir, old.encryptedFileName).writeBytes(
-            GalleryCipher.encrypt(encoded.bytes, "image:${old.id}"),
-        )
-        File(thumbsDir, old.thumbnailFileName).writeBytes(
-            GalleryCipher.encrypt(thumb, "thumb:${old.id}"),
-        )
-        val changed = old.copy(
-            width = edited.width,
-            height = edited.height,
-            orientation = 1,
-            colorSpace = edited.colorSpace?.name ?: old.colorSpace,
-            updatedAt = System.currentTimeMillis(),
-            sha256 = sha256(encoded.bytes),
-            mimeType = encoded.mimeType,
-        )
-        edited.recycle()
-        current[index] = changed
-        saveIndex(current)
-        return changed
+        val revision = UUID.randomUUID().toString()
+        val newImageFileName = "${old.id}-$revision.bin"
+        val newThumbFileName = "${old.id}-$revision.bin"
+        val newImageFile = File(imagesDir, newImageFileName)
+        val newThumbFile = File(thumbsDir, newThumbFileName)
+
+        try {
+            val encoded = encodeSanitized(edited)
+            val thumb = makeThumbnail(edited)
+            newImageFile.writeBytes(
+                GalleryCipher.encrypt(encoded.bytes, "image:${old.id}"),
+            )
+            newThumbFile.writeBytes(
+                GalleryCipher.encrypt(thumb, "thumb:${old.id}"),
+            )
+
+            val changed = old.copy(
+                encryptedFileName = newImageFileName,
+                thumbnailFileName = newThumbFileName,
+                width = edited.width,
+                height = edited.height,
+                orientation = 1,
+                colorSpace = edited.colorSpace?.name ?: old.colorSpace,
+                updatedAt = System.currentTimeMillis(),
+                sha256 = sha256(encoded.bytes),
+                mimeType = encoded.mimeType,
+            )
+            current[index] = changed
+            saveIndex(current)
+
+            File(imagesDir, old.encryptedFileName).delete()
+            File(thumbsDir, old.thumbnailFileName).delete()
+            return changed
+        } catch (error: Throwable) {
+            newImageFile.delete()
+            newThumbFile.delete()
+            throw error
+        } finally {
+            edited.recycle()
+        }
     }
 
     private data class PreparedImage(
@@ -235,7 +271,10 @@ class GalleryRepository(context: Context) {
         BitmapFactory.decodeByteArray(source, 0, source.size, bounds)
         require(bounds.outWidth > 0 && bounds.outHeight > 0) { "Unsupported image" }
         var sample = 1
-        while ((bounds.outWidth.toLong() / sample) * (bounds.outHeight.toLong() / sample) > MAX_DECODE_PIXELS) {
+        while (
+            (bounds.outWidth.toLong() / sample) * (bounds.outHeight.toLong() / sample) >
+            MAX_DECODE_PIXELS
+        ) {
             sample *= 2
         }
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
@@ -349,9 +388,9 @@ class GalleryRepository(context: Context) {
     }
 
     private fun loadIndex(): List<GalleryImage> {
-        if (!indexFile.exists()) return emptyList()
+        val encrypted = readAtomic(indexFile) ?: return emptyList()
         val json = String(
-            GalleryCipher.decrypt(indexFile.readBytes(), INDEX_PURPOSE),
+            GalleryCipher.decrypt(encrypted, INDEX_PURPOSE),
             Charsets.UTF_8,
         )
         val array = JSONArray(json)
@@ -367,9 +406,9 @@ class GalleryRepository(context: Context) {
     }
 
     private fun loadAlbums(): List<GalleryAlbum> {
-        if (!albumsFile.exists()) return emptyList()
+        val encrypted = readAtomic(albumsFile) ?: return emptyList()
         val json = String(
-            GalleryCipher.decrypt(albumsFile.readBytes(), ALBUMS_PURPOSE),
+            GalleryCipher.decrypt(encrypted, ALBUMS_PURPOSE),
             Charsets.UTF_8,
         )
         val array = JSONArray(json)
@@ -401,12 +440,34 @@ class GalleryRepository(context: Context) {
         saveEncryptedArray(albumsFile, ALBUMS_PURPOSE, array)
     }
 
+    private fun readAtomic(target: File): ByteArray? = try {
+        AtomicFile(target).readFully()
+    } catch (_: FileNotFoundException) {
+        null
+    }
+
     private fun saveEncryptedArray(target: File, purpose: String, array: JSONArray) {
         val encrypted = GalleryCipher.encrypt(array.toString().toByteArray(Charsets.UTF_8), purpose)
-        val temp = File(root, "${target.name}.tmp")
-        temp.writeBytes(encrypted)
-        if (target.exists()) check(target.delete()) { "Unable to replace gallery data" }
-        check(temp.renameTo(target)) { "Unable to commit gallery data" }
+        val atomic = AtomicFile(target)
+        val output = atomic.startWrite()
+        try {
+            output.write(encrypted)
+            atomic.finishWrite(output)
+        } catch (error: Throwable) {
+            atomic.failWrite(output)
+            throw error
+        }
+    }
+
+    private fun reconcileOrphans(items: List<GalleryImage>) {
+        val referencedImages = items.mapTo(hashSetOf()) { it.encryptedFileName }
+        val referencedThumbs = items.mapTo(hashSetOf()) { it.thumbnailFileName }
+        imagesDir.listFiles()?.forEach { file ->
+            if (file.isFile && file.name !in referencedImages) file.delete()
+        }
+        thumbsDir.listFiles()?.forEach { file ->
+            if (file.isFile && file.name !in referencedThumbs) file.delete()
+        }
     }
 
     private fun toJson(item: GalleryImage) = JSONObject().apply {
@@ -479,6 +540,7 @@ class GalleryRepository(context: Context) {
         private const val MAX_DECODE_PIXELS = 24_000_000L
         private const val THUMBNAIL_SIZE = 512
         private const val MAX_ALBUM_NAME_LENGTH = 80
+        private val STORAGE_LOCK = Any()
 
         private val SHOOTING_TAGS = listOf(
             "ExposureTime",
