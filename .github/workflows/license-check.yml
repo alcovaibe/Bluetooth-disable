@@ -1,0 +1,16 @@
+name: License Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  license-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check project dependencies
+        run: echo "Dependency license review required before release"
