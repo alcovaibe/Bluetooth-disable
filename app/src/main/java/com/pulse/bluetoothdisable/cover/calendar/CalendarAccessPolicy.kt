@@ -10,7 +10,7 @@ object CalendarAccessPolicy {
 
     fun isValid(text: String): Boolean {
         val normalized = normalize(text)
-        return normalized.codePointCount(0, normalized.length) in MIN_LENGTH..MAX_LENGTH
+        return normalized.length in MIN_LENGTH..MAX_LENGTH
     }
 
     // Bind the date to the verifier too. Changing a stored date cannot move the entry rule.
