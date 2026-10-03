@@ -54,16 +54,18 @@ jobs:
             --configuration releaseRuntimeClasspath \
             --console=plain | tee build/reports/dependencies/releaseRuntimeClasspath.txt
 
-      - name: Audit dependency licenses
-        uses: actions/dependency-review-action@v4
-        with:
-          license-check: true
-          vulnerability-check: false
+      - name: Audit runtime dependency licenses
+        run: |
+          python3 scripts/audit_dependency_licenses.py \
+            build/reports/dependencies/releaseRuntimeClasspath.txt \
+            build/reports/licenses/dependency-licenses.md
 
-      - name: Upload resolved dependency tree
+      - name: Upload dependency audit
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-tree
-          path: build/reports/dependencies/releaseRuntimeClasspath.txt
+          name: dependency-license-audit
+          path: |
+            build/reports/dependencies/releaseRuntimeClasspath.txt
+            build/reports/licenses/dependency-licenses.md
           if-no-files-found: error
