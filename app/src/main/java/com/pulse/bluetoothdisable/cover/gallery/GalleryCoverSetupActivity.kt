@@ -3,14 +3,15 @@ package com.pulse.bluetoothdisable.cover.gallery
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -88,15 +89,15 @@ class GalleryCoverSetupActivity : ComponentActivity() {
                     onCancel = ::finish,
                     onComplete = { imageId, sequence, onResult ->
                         lifecycleScope.launch {
-                            val success = withContext(Dispatchers.IO) {
+                            val activation = withContext(Dispatchers.IO) {
                                 runCatching {
                                     val stillExists = repository.image(imageId) != null
                                     require(stillExists) { "Secret image was removed before activation" }
                                     CoverModeManager(this@GalleryCoverSetupActivity)
                                         .activateGallery(imageId, sequence)
-                                }.isSuccess
+                                }
                             }
-                            if (success) {
+                            if (activation.isSuccess) {
                                 Toast.makeText(
                                     this@GalleryCoverSetupActivity,
                                     R.string.gallery_setup_completed,
@@ -104,6 +105,7 @@ class GalleryCoverSetupActivity : ComponentActivity() {
                                 ).show()
                                 CoverModeNavigator.openCover(this@GalleryCoverSetupActivity, CoverMode.GALLERY)
                             } else {
+                                Log.e(TAG, "Unable to activate Gallery Cover Mode", activation.exceptionOrNull())
                                 onResult(false)
                             }
                         }
@@ -111,6 +113,10 @@ class GalleryCoverSetupActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "GalleryCoverSetup"
     }
 }
 
@@ -135,7 +141,6 @@ private fun GallerySetupScreen(
     onCancel: () -> Unit,
     onComplete: (String, List<GalleryTapZone>, (Boolean) -> Unit) -> Unit,
 ) {
-    val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     var images by remember { mutableStateOf<List<GalleryImage>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -164,9 +169,10 @@ private fun GallerySetupScreen(
             runCatching { repository.importUris(context.contentResolver, pickedUris) }
         }
         busy = false
-        storageError = result.isFailure
+        val importFailed = result.isFailure
         onPickedUrisConsumed()
         reload()
+        if (importFailed) storageError = true
     }
 
     Surface(Modifier.fillMaxSize()) {
@@ -175,12 +181,25 @@ private fun GallerySetupScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(stringResource(R.string.gallery_setup_title), style = MaterialTheme.typography.headlineSmall)
-            if (storageError) Text(stringResource(R.string.gallery_storage_error), color = MaterialTheme.colorScheme.error)
-            if (setupFailed) Text(stringResource(R.string.gallery_setup_failed), color = MaterialTheme.colorScheme.error)
+            if (storageError) {
+                Text(
+                    stringResource(R.string.gallery_storage_error),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (setupFailed) {
+                Text(
+                    stringResource(R.string.gallery_setup_failed),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
 
             when (step) {
                 GallerySetupStep.IMAGE -> {
-                    Text(stringResource(R.string.gallery_setup_pick_secret), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        stringResource(R.string.gallery_setup_pick_secret),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                     Button(onClick = onPickPhotos, enabled = !busy) {
                         Text(stringResource(R.string.gallery_add_photos))
                     }
@@ -207,7 +226,9 @@ private fun GallerySetupScreen(
                             step = GallerySetupStep.FIRST_SEQUENCE
                         },
                     ) { Text(stringResource(R.string.continue_action)) }
-                    TextButton(onClick = onCancel, enabled = !busy) { Text(stringResource(R.string.cancel)) }
+                    TextButton(onClick = onCancel, enabled = !busy) {
+                        Text(stringResource(R.string.cancel))
+                    }
                 }
 
                 GallerySetupStep.FIRST_SEQUENCE,
@@ -223,29 +244,53 @@ private fun GallerySetupScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        stringResource(R.string.gallery_sequence_progress, currentSequence.size, GalleryAccessPolicy.SEQUENCE_LENGTH),
+                        stringResource(
+                            R.string.gallery_sequence_progress,
+                            currentSequence.size,
+                            GalleryAccessPolicy.SEQUENCE_LENGTH,
+                        ),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                    if (mismatch) Text(stringResource(R.string.gallery_sequence_mismatch), color = MaterialTheme.colorScheme.error)
+                    if (mismatch) {
+                        Text(
+                            stringResource(R.string.gallery_sequence_mismatch),
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
 
                     GallerySequencePad(
                         selected = currentSequence,
+                        enabled = !busy,
                         onZone = { zone ->
-                            if (currentSequence.size < GalleryAccessPolicy.SEQUENCE_LENGTH && zone !in currentSequence) {
+                            if (
+                                currentSequence.size < GalleryAccessPolicy.SEQUENCE_LENGTH &&
+                                zone !in currentSequence
+                            ) {
                                 mismatch = false
                                 currentSequence = currentSequence + zone
                             }
                         },
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { currentSequence = emptyList(); mismatch = false }) {
+                        TextButton(
+                            enabled = !busy,
+                            onClick = {
+                                currentSequence = emptyList()
+                                mismatch = false
+                            },
+                        ) {
                             Text(stringResource(R.string.gallery_sequence_clear))
                         }
-                        TextButton(onClick = {
-                            currentSequence = emptyList()
-                            mismatch = false
-                            step = GallerySetupStep.IMAGE
-                        }) { Text(stringResource(R.string.gallery_back)) }
+                        TextButton(
+                            enabled = !busy,
+                            onClick = {
+                                currentSequence = emptyList()
+                                mismatch = false
+                                step = GallerySetupStep.IMAGE
+                            },
+                        ) {
+                            Text(stringResource(R.string.gallery_back))
+                        }
                     }
                     Spacer(Modifier.weight(1f))
                     Button(
@@ -272,8 +317,11 @@ private fun GallerySetupScreen(
                     ) {
                         Text(
                             stringResource(
-                                if (step == GallerySetupStep.FIRST_SEQUENCE) R.string.continue_action
-                                else R.string.gallery_finish_setup,
+                                if (step == GallerySetupStep.FIRST_SEQUENCE) {
+                                    R.string.continue_action
+                                } else {
+                                    R.string.gallery_finish_setup
+                                },
                             ),
                         )
                     }
@@ -300,11 +348,17 @@ private fun GallerySetupGrid(
                         Spacer(Modifier.weight(1f))
                     } else {
                         Surface(
-                            modifier = Modifier.weight(1f).height(128.dp).clickable { onSelect(image.id) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(128.dp)
+                                .clickable { onSelect(image.id) },
                             border = BorderStroke(
                                 if (selectedId == image.id) 3.dp else 1.dp,
-                                if (selectedId == image.id) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outlineVariant,
+                                if (selectedId == image.id) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
                             ),
                         ) {
                             SetupThumbnail(repository, image.id)
@@ -319,21 +373,33 @@ private fun GallerySetupGrid(
 @Composable
 private fun SetupThumbnail(repository: GalleryRepository, id: String) {
     val bitmap by produceState<ImageBitmap?>(null, id) {
-        val bytes = withContext(Dispatchers.IO) { runCatching { repository.thumbnailBytes(id) }.getOrNull() }
+        val bytes = withContext(Dispatchers.IO) {
+            runCatching { repository.thumbnailBytes(id) }.getOrNull()
+        }
         value = bytes?.let { data ->
-            withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(data, 0, data.size)?.asImageBitmap() }
+            withContext(Dispatchers.Default) {
+                BitmapFactory.decodeByteArray(data, 0, data.size)?.asImageBitmap()
+            }
         }
     }
     if (bitmap != null) {
-        Image(bitmap = bitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        Image(
+            bitmap = bitmap!!,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
     } else {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
     }
 }
 
 @Composable
 private fun GallerySequencePad(
     selected: List<GalleryTapZone>,
+    enabled: Boolean,
     onZone: (GalleryTapZone) -> Unit,
 ) {
     val rows = listOf(
@@ -351,7 +417,9 @@ private fun GallerySequencePad(
                         val order = selected.indexOf(zone).takeIf { it >= 0 }?.plus(1)
                         Button(
                             onClick = { onZone(zone) },
-                            enabled = zone !in selected && selected.size < GalleryAccessPolicy.SEQUENCE_LENGTH,
+                            enabled = enabled &&
+                                zone !in selected &&
+                                selected.size < GalleryAccessPolicy.SEQUENCE_LENGTH,
                             modifier = Modifier.weight(1f).height(70.dp),
                         ) {
                             Text(if (order == null) zoneSymbol(zone) else "$order ${zoneSymbol(zone)}")
