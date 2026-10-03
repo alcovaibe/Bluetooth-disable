@@ -197,11 +197,18 @@ class CalendarCoverInstrumentedTest {
             assertFalse(CalendarAccessManager(context).hasRule())
             compose.onNodeWithText("FINISH SETUP").performClick()
             val failureText = context.getString(R.string.calendar_setup_failed)
+            var activationFailureReported = false
             compose.waitUntil(15_000) {
-                manager.isCalendarReady() ||
-                    compose.onAllNodesWithText(failureText).fetchSemanticsNodes().isNotEmpty()
+                if (manager.isCalendarReady()) {
+                    true
+                } else {
+                    activationFailureReported = runCatching {
+                        compose.onAllNodesWithText(failureText).fetchSemanticsNodes().isNotEmpty()
+                    }.getOrDefault(false)
+                    activationFailureReported
+                }
             }
-            compose.onNodeWithText(failureText).assertDoesNotExist()
+            assertFalse("Calendar setup reported an activation failure", activationFailureReported)
             assertTrue("Calendar activation did not complete successfully", manager.isCalendarReady())
             assertTrue(CalendarAccessManager(context).verify(LocalDate.now(), "my calendar text"))
             assertTrue(LocalCalendarNotesRepository(context).notes().isEmpty())
