@@ -38,18 +38,23 @@ fun CalendarScreen(
     val addDescription = stringResource(R.string.calendar_add_note)
     val chooseDescription = stringResource(R.string.calendar_choose_date)
     val today = LocalDate.now()
+
     Scaffold(
         topBar = {
             TopAppBar(
                 modifier = Modifier.testTag("calendar_toolbar"),
                 title = {
-                    Text(stringResource(R.string.launcher_name_calendar),
-                        modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold))
+                    Text(
+                        stringResource(R.string.launcher_name_calendar),
+                        modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold),
+                    )
                 },
                 actions = {
                     TextButton(onClick = viewModel::today) {
-                        Text(stringResource(R.string.calendar_today),
-                            modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold))
+                        Text(
+                            stringResource(R.string.calendar_today),
+                            modifier = Modifier.coverRecoveryHold(recoveryEnabled, onRecoveryHold),
+                        )
                     }
                 },
             )
@@ -58,7 +63,9 @@ fun CalendarScreen(
             FloatingActionButton(
                 onClick = viewModel::add,
                 modifier = Modifier.semantics { contentDescription = addDescription },
-            ) { Text("+", style = MaterialTheme.typography.headlineMedium) }
+            ) {
+                Text("+", style = MaterialTheme.typography.headlineMedium)
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -72,16 +79,22 @@ fun CalendarScreen(
                         onClick = { viewModel.moveMonth(-1) },
                         enabled = !(state.month.year == CalendarDates.YEAR_RANGE.first && state.month.monthValue == 1),
                         modifier = Modifier.semantics { contentDescription = previousDescription },
-                    ) { Text("‹", style = MaterialTheme.typography.headlineMedium) }
+                    ) {
+                        Text("‹", style = MaterialTheme.typography.headlineMedium)
+                    }
                     TextButton(
                         onClick = { choosingDate = true },
                         modifier = Modifier.weight(1f).semantics { contentDescription = chooseDescription },
-                    ) { Text(CalendarDates.formatMonth(state.month, locale), style = MaterialTheme.typography.titleLarge) }
+                    ) {
+                        Text(CalendarDates.formatMonth(state.month, locale), style = MaterialTheme.typography.titleLarge)
+                    }
                     IconButton(
                         onClick = { viewModel.moveMonth(1) },
                         enabled = !(state.month.year == CalendarDates.YEAR_RANGE.last && state.month.monthValue == 12),
                         modifier = Modifier.semantics { contentDescription = nextDescription },
-                    ) { Text("›", style = MaterialTheme.typography.headlineMedium) }
+                    ) {
+                        Text("›", style = MaterialTheme.typography.headlineMedium)
+                    }
                 }
                 Row(Modifier.fillMaxWidth()) {
                     DayOfWeek.entries.forEach { day ->
@@ -100,12 +113,25 @@ fun CalendarScreen(
                                 Surface(
                                     onClick = { viewModel.select(date) },
                                     shape = CircleShape,
-                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-                                    border = if (date == today) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
-                                    modifier = Modifier.size(44.dp).testTag("calendar_day_$date")
-                                        .semantics { contentDescription = CalendarDates.formatDate(date, locale) },
+                                    color = if (selected) {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceContainerHigh
+                                    },
+                                    border = if (date == today) {
+                                        BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                                    } else {
+                                        null
+                                    },
+                                    modifier = Modifier.size(44.dp)
+                                        .testTag("calendar_day_$date")
+                                        .semantics {
+                                            contentDescription = CalendarDates.formatDate(date, locale)
+                                        },
                                 ) {
-                                    Box(contentAlignment = Alignment.Center) { Text(date.dayOfMonth.toString()) }
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text(date.dayOfMonth.toString())
+                                    }
                                 }
                             }
                         }
@@ -114,16 +140,41 @@ fun CalendarScreen(
             }
             item {
                 HorizontalDivider(Modifier.padding(vertical = 12.dp))
-                Text(CalendarDates.formatDate(state.selectedDate, locale), style = MaterialTheme.typography.titleLarge)
+                Text(
+                    CalendarDates.formatDate(state.selectedDate, locale),
+                    style = MaterialTheme.typography.titleLarge,
+                )
             }
-            if (state.loading) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-            if (state.storageError) item {
-                Text(stringResource(R.string.calendar_storage_error), color = MaterialTheme.colorScheme.error)
-                TextButton(onClick = viewModel::refresh) { Text(stringResource(R.string.calendar_retry)) }
+            if (state.loading) {
+                item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+            }
+            if (state.storageError) {
+                item {
+                    Text(
+                        stringResource(R.string.calendar_storage_error),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    TextButton(onClick = viewModel::refresh) {
+                        Text(stringResource(R.string.calendar_retry))
+                    }
+                }
+            }
+            if (!state.editorOpen && state.noteError != null) {
+                item {
+                    Text(
+                        calendarNoteErrorText(state.noteError),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
             val notes = state.notes.filter { it.date == state.selectedDate }
-            if (!state.loading && !state.storageError && notes.isEmpty()) item {
-                Text(stringResource(R.string.calendar_no_notes), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!state.loading && !state.storageError && notes.isEmpty()) {
+                item {
+                    Text(
+                        stringResource(R.string.calendar_no_notes),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             items(notes, key = { it.id }) { note ->
                 CalendarNoteCard(
@@ -136,28 +187,71 @@ fun CalendarScreen(
             }
         }
     }
-    if (choosingDate) CalendarDateDialog(state.selectedDate,
-        onSelect = { viewModel.select(it); choosingDate = false },
-        onDismiss = { choosingDate = false },
-    )
-    if (state.editorOpen) {
-        key(state.editingNote?.id) {
-            CalendarNoteDialog(state.editingNote, state.busy, state.storageError,
-                onSave = viewModel::save, onDismiss = viewModel::closeEditor)
-        }
+
+    if (choosingDate) {
+        CalendarDateDialog(
+            state.selectedDate,
+            onSelect = {
+                viewModel.select(it)
+                choosingDate = false
+            },
+            onDismiss = { choosingDate = false },
+        )
     }
+
+    if (state.editorOpen) {
+        CalendarNoteDialog(
+            editing = state.editingNote != null,
+            text = state.editorText,
+            busy = state.busy,
+            failed = state.storageError,
+            noteError = state.noteError,
+            onTextChange = viewModel::updateEditorText,
+            onSave = viewModel::save,
+            onDismiss = viewModel::closeEditor,
+        )
+    }
+
+    state.viewingNote?.let { note ->
+        AlertDialog(
+            onDismissRequest = viewModel::closeViewer,
+            title = { Text(stringResource(R.string.calendar_note)) },
+            text = {
+                Text(
+                    note.text,
+                    modifier = Modifier.fillMaxWidth().testTag("calendar_note_view"),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::closeViewer) {
+                    Text(stringResource(R.string.calendar_close))
+                }
+            },
+        )
+    }
+
     deleting?.let { note ->
         AlertDialog(
             onDismissRequest = { deleting = null },
             title = { Text(stringResource(R.string.calendar_delete_note)) },
             text = { Text(stringResource(R.string.calendar_delete_confirmation)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.delete(note); deleting = null }) {
-                    Text(stringResource(R.string.calendar_delete), color = MaterialTheme.colorScheme.error)
+                TextButton(
+                    onClick = {
+                        viewModel.delete(note)
+                        deleting = null
+                    },
+                ) {
+                    Text(
+                        stringResource(R.string.calendar_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             },
             dismissButton = {
-                TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) }
+                TextButton(onClick = { deleting = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
             },
         )
     }
@@ -165,31 +259,73 @@ fun CalendarScreen(
 
 @Composable
 private fun CalendarNoteDialog(
-    note: CalendarNote?, busy: Boolean, failed: Boolean,
-    onSave: (String) -> Unit, onDismiss: () -> Unit,
+    editing: Boolean,
+    text: String,
+    busy: Boolean,
+    failed: Boolean,
+    noteError: CalendarNotePolicy.Violation?,
+    onTextChange: (String) -> Unit,
+    onSave: () -> Unit,
+    onDismiss: () -> Unit,
 ) {
-    var text by remember { mutableStateOf(note?.text.orEmpty()) }
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
-        title = { Text(stringResource(if (note == null) R.string.calendar_add_note else R.string.calendar_edit_note)) },
+        title = {
+            Text(
+                stringResource(
+                    if (editing) R.string.calendar_edit_note else R.string.calendar_add_note,
+                ),
+            )
+        },
         text = {
             Column {
                 OutlinedTextField(
-                    value = text, onValueChange = { text = it }, enabled = !busy,
+                    value = text,
+                    onValueChange = onTextChange,
+                    enabled = !busy,
                     label = { Text(stringResource(R.string.calendar_note)) },
                     modifier = Modifier.fillMaxWidth().testTag("calendar_note_text"),
-                    minLines = 3, maxLines = 6,
+                    minLines = 3,
+                    maxLines = 6,
+                    isError = noteError != null || failed,
+                    supportingText = {
+                        Text("${text.length}/${CalendarNotePolicy.MAX_TEXT_LENGTH}")
+                    },
                 )
-                if (failed) Text(stringResource(R.string.calendar_storage_error), color = MaterialTheme.colorScheme.error)
+                noteError?.let {
+                    Text(calendarNoteErrorText(it), color = MaterialTheme.colorScheme.error)
+                }
+                if (failed) {
+                    Text(
+                        stringResource(R.string.calendar_storage_error),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(text) }, enabled = text.isNotBlank() && !busy) {
+            TextButton(
+                onClick = onSave,
+                enabled = CalendarNotePolicy.normalize(text).isNotEmpty() && !busy,
+            ) {
                 Text(stringResource(R.string.calendar_save))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !busy) { Text(stringResource(R.string.cancel)) }
+            TextButton(onClick = onDismiss, enabled = !busy) {
+                Text(stringResource(R.string.cancel))
+            }
         },
     )
 }
+
+@Composable
+private fun calendarNoteErrorText(error: CalendarNotePolicy.Violation): String =
+    stringResource(
+        when (error) {
+            CalendarNotePolicy.Violation.EMPTY -> R.string.calendar_note_empty
+            CalendarNotePolicy.Violation.TOO_LONG -> R.string.calendar_note_too_long
+            CalendarNotePolicy.Violation.DUPLICATE -> R.string.calendar_note_duplicate
+            CalendarNotePolicy.Violation.DATE_LIMIT -> R.string.calendar_note_limit
+        },
+    )
