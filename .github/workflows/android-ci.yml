@@ -38,15 +38,53 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
 
-      - name: Verify project
+      - name: Verify debug project
         run: ./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
+
+      - name: Restore release keystore
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$RELEASE_KEYSTORE_BASE64"
+          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/bluetooth-disable-release.jks"
+
+      - name: Verify release build
+        env:
+          RELEASE_STORE_FILE: ${{ runner.temp }}/bluetooth-disable-release.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
 
   instrumented-tests:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        api-level: [26, 29, 33, 36]
+        include:
+          - api-level: 26
+            arch: x86_64
+          - api-level: 27
+            arch: x86
+          - api-level: 28
+            arch: x86_64
+          - api-level: 29
+            arch: x86_64
+          - api-level: 30
+            arch: x86_64
+          - api-level: 31
+            arch: x86_64
+          - api-level: 32
+            arch: x86_64
+          - api-level: 33
+            arch: x86_64
+          - api-level: 34
+            arch: x86_64
+          - api-level: 35
+            arch: x86_64
+          - api-level: 36
+            arch: x86_64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,7 +112,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           target: google_apis
-          arch: x86_64
+          arch: ${{ matrix.arch }}
           disable-animations: true
           script: |
             ./gradlew connectedDebugAndroidTest
